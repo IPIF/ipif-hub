@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "ipif-hub"
+version = "0.1.0"
+description = ""
+authors = ["Richard Hadden <richard.hadden@oeaw.ac.at>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+acdh-django-browsing = "1.0.0"
+Django = ">=3.2,<4"
+requests = ">=2.25"
+
+[tool.poetry.dev-dependencies]
+black = "^22.1.0"
+ipython = "^8.1.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

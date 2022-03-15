@@ -1,0 +1,35 @@
+name: Test
+on:
+  push:
+    branches:
+      - master
+jobs:
+  test:
+    name: Test Application
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+    - uses: actions/cache@v2
+      with:
+        path: ${{ env.pythonLocation }}
+        key: ${{ env.pythonLocation }}-${{ hashFiles('requirements_dev.txt') }}
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade --upgrade-strategy eager -r requirements_dev.txt
+    - name: Run migrations
+      run: python manage.py migrate
+    - name: Run tests
+      run: coverage run manage.py test
+    - name: Create Coverage Report
+      run: coverage xml
+    - name: "Upload coverage to Codecov"
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{secrets.CODECOV_TOKEN}}
+        file: ./coverage.xml
+        fail_ci_if_error: true
