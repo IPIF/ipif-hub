@@ -186,6 +186,20 @@ python-versions = ">=3.6"
 Django = ">=2.2"
 
 [[package]]
+name = "django-haystack"
+version = "3.1.1"
+description = "Pluggable search for Django."
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+Django = ">=2.2"
+
+[package.extras]
+elasticsearch = ["elasticsearch (>=5,<6)"]
+
+[[package]]
 name = "django-super-deduper"
 version = "0.1.4"
 description = "Utilities for deduping Django model instances"
@@ -409,6 +423,20 @@ optional = false
 python-versions = ">=3.5"
 
 [[package]]
+name = "pysolr"
+version = "3.9.0"
+description = "Lightweight Python client for Apache Solr"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+requests = ">=2.9.1"
+
+[package.extras]
+solrcloud = ["kazoo (>=2.5.0)"]
+
+[[package]]
 name = "python-dateutil"
 version = "2.8.2"
 description = "Extensions to the standard Python datetime module"
@@ -538,7 +566,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "dcd8a96d2016a85cb836075feaa5b911d8ae5d6ec6d16055c18169b933d3bb15"
+content-hash = "7aadc8bf36d4dae3b4c9d432dc151c23956c3d48ae94c15bb2bd9480f167464d"
 
 [metadata.files]
 acdh-django-browsing = [
@@ -624,6 +652,10 @@ django-crispy-forms = [
 django-filter = [
     {file = "django-filter-21.1.tar.gz", hash = "sha256:632a251fa8f1aadb4b8cceff932bb52fe2f826dd7dfe7f3eac40e5c463d6836e"},
     {file = "django_filter-21.1-py3-none-any.whl", hash = "sha256:f4a6737a30104c98d2e2a5fb93043f36dd7978e0c7ddc92f5998e85433ea5063"},
+]
+django-haystack = [
+    {file = "django-haystack-3.1.1.tar.gz", hash = "sha256:6d05756b95d7d5ec1dbd4668eb999ced1504b47f588e2e54be53b1404c516a82"},
+    {file = "django_haystack-3.1.1-py3-none-any.whl", hash = "sha256:970ebc6362f3f84861209154ec34b57f3e87d2d7922f948df80177f0e2e3ced7"},
 ]
 django-super-deduper = [
     {file = "django-super-deduper-0.1.4.tar.gz", hash = "sha256:e88cd3f954d44feef6c06d44267a17f289cc65f42eb802b44091ec7e50e5f36c"},
@@ -737,6 +769,9 @@ pure-eval = [
 pygments = [
     {file = "Pygments-2.11.2-py3-none-any.whl", hash = "sha256:44238f1b60a76d78fc8ca0528ee429702aae011c265fe6a8dd8b63049ae41c65"},
     {file = "Pygments-2.11.2.tar.gz", hash = "sha256:4e426f72023d88d03b2fa258de560726ce890ff3b630f88c21cbb8b2503b8c6a"},
+]
+pysolr = [
+    {file = "pysolr-3.9.0.tar.gz", hash = "sha256:6ef05feb87c614894243eddc62e9b0a6134a889c159ae868655cf6cd749545e6"},
 ]
 python-dateutil = [
     {file = "python-dateutil-2.8.2.tar.gz", hash = "sha256:0123cacc1627ae19ddf3c27a5de5bd67ee4586fbdd6440d9748f8abb483d3e86"},

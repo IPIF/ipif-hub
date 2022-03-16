@@ -1,0 +1,9 @@
+version: '3.3'
+services:
+  solr:
+    image: "solr:6"
+    ports:
+      - "8983:8983"
+    volumes:
+      - ./conf/schema.xml:/opt/solr/conf/schema.xml
+    command: 'bash -e -c "precreate-core mycore; cp /opt/solr/conf/schema.xml /opt/solr/server/solr/mycores/mycore/conf/schema.xml; cp /opt/solr/server/solr/configsets/basic_configs/conf/solrconfig.xml /opt/solr/server/solr/mycores/mycore/conf/solrconfig.xml; rm /opt/solr/server/solr/mycores/mycore/conf/managed-schema; solr-foreground;"'
