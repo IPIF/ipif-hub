@@ -578,7 +578,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "dbf1a6761728fccd3bb179a09f166a3ca07d6ef45d45ba5b1be4c7e31392d46b"
+content-hash = "44d75a4a4f1b904c0382ee3f61c4d3f2d19328d47c18338c5365cb8c1158888a"
 
 [metadata.files]
 acdh-django-browsing = [

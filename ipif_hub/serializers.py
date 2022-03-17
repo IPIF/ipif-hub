@@ -1,7 +1,7 @@
 import re
 from rest_framework import serializers
 
-from .models import Person, URI, Factoid, Source, Statement
+from .models import Person, URI, Factoid, Place, Source, Statement
 
 
 class URISerlializer(serializers.ModelSerializer):
@@ -139,7 +139,19 @@ class SourceSerializer(serializers.ModelSerializer):
         }
 
 
+class PlacesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Place
+        fields = ["uri", "label"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        return {"@id": data["uri"], "label": data["label"], "uri": data["uri"]}
+
+
 class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
+    places = PlacesSerializer(many=True)
+
     class Meta:
         model = Statement
         exclude = ["ipif_repo", "hubIngestedWhen", "hubModifiedWhen"]
