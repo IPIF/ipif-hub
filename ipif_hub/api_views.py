@@ -16,7 +16,7 @@ from .serializers import (
 )
 
 
-def apply_statement_filters(q: Q, object_class, request) -> Q:
+def apply_statement_filters(q: Q, request) -> Q:
     """
     ✅ statementText
     ✅ relatesToPerson
@@ -65,24 +65,24 @@ def apply_statement_filters(q: Q, object_class, request) -> Q:
         return q
 
     # Create a statement Q object
-    st_q = Q()
 
     # If independentStatements flag set, each statement filter can belong to any statem
     if request.query_params.get("independentStatements") == "true":
 
-        statements = Statement.objects.all(sf)
+        # Go through the statement filters, find which person they apply to,
+
         for sf in statement_filters:
-            s = Statement.objects.filter(sf)
-            if s:
-                statements.append(s)
-            else:
-                print("NO SUCH LUCK")
-                return "NO SUCH LUCK"
+            statements = Statement.objects.filter(sf)
+            print(statements)
+            q &= Q(factoids__statement__in=statements)
+        print(q)
 
     else:
+        st_q = Q()
         for sf in statement_filters:
             st_q &= sf
         statements = Statement.objects.filter(st_q)
+        print(statements)
         q &= Q(factoids__statement__in=statements)
 
     return q
@@ -102,7 +102,7 @@ class PersonsViewSet(viewsets.ViewSet):
         if p := request.query_params.get("sourceId"):
             q &= Q(factoids__source__id=p)
 
-        q = apply_statement_filters(q, Person, request)
+        q = apply_statement_filters(q, request)
 
         queryset = Person.objects.filter(q).distinct()
 

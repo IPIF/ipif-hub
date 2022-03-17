@@ -151,6 +151,7 @@ class PlacesSerializer(serializers.ModelSerializer):
 
 class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
     places = PlacesSerializer(many=True)
+    factoid = FactoidSerializer(many=True)
 
     class Meta:
         model = Statement
@@ -173,4 +174,5 @@ class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
                     return_dict[field] = {subfield: v}
             else:
                 return_dict[k] = v
+        return_dict["factoid-refs"] = return_dict.pop("factoid")
         return return_dict
