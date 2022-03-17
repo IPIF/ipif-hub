@@ -225,6 +225,18 @@ Django = ">=1.11"
 tablib = ["tablib"]
 
 [[package]]
+name = "djangorestframework"
+version = "3.13.1"
+description = "Web APIs for Django, made easy."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+django = ">=2.2"
+pytz = "*"
+
+[[package]]
 name = "executing"
 version = "0.8.3"
 description = "Get the currently executing AST node of a frame, and other information"
@@ -566,7 +578,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "7aadc8bf36d4dae3b4c9d432dc151c23956c3d48ae94c15bb2bd9480f167464d"
+content-hash = "dbf1a6761728fccd3bb179a09f166a3ca07d6ef45d45ba5b1be4c7e31392d46b"
 
 [metadata.files]
 acdh-django-browsing = [
@@ -664,6 +676,10 @@ django-super-deduper = [
 django-tables2 = [
     {file = "django-tables2-2.4.1.tar.gz", hash = "sha256:6c72dd208358539e789e4c0efd7d151e43283a4aa4093a35f44c43489e7ddeaa"},
     {file = "django_tables2-2.4.1-py2.py3-none-any.whl", hash = "sha256:50762bf3d7c61a4eb70e763c3e278650d7266bb78d0497fc8fafcf4e507c9a64"},
+]
+djangorestframework = [
+    {file = "djangorestframework-3.13.1-py3-none-any.whl", hash = "sha256:24c4bf58ed7e85d1fe4ba250ab2da926d263cd57d64b03e8dcef0ac683f8b1aa"},
+    {file = "djangorestframework-3.13.1.tar.gz", hash = "sha256:0c33407ce23acc68eca2a6e46424b008c9c02eceb8cf18581921d0092bc1f2ee"},
 ]
 executing = [
     {file = "executing-0.8.3-py2.py3-none-any.whl", hash = "sha256:d1eef132db1b83649a3905ca6dd8897f71ac6f8cac79a7e58a1a09cf137546c9"},

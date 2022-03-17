@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "haystack",
+    "rest_framework",
     "crispy_forms",
     "django_filters",
     "django_tables2",
