@@ -1,3 +1,4 @@
+from typing import List
 from django.db.models import Q
 
 from rest_framework import viewsets
@@ -16,7 +17,7 @@ from .serializers import (
 )
 
 
-def apply_statement_filters(q: Q, request) -> Q:
+def build_statement_filters(request) -> List:
     """
     ✅ statementText
     ✅ relatesToPerson
@@ -61,29 +62,22 @@ def apply_statement_filters(q: Q, request) -> Q:
         statement_filters.append(Q(date_sortdate__lte=date))
 
     # If no statement filters are found, just return the Q object early
-    if not statement_filters:
-        return q
+    return statement_filters
 
     # Create a statement Q object
+    """
+    Combining together is producing STATEMENT5... ???
+
+    (AND: ('factoids__statement__in', <QuerySet [<Statement: Statement object (Statement1)>]>))
+<QuerySet [<Person: John Smith (http://personlist.com/PersonA)>]>
+[18/Mar/2022 08:10:02] "GET /ipif/persons/?name=John%20Smith&independentStatements=true HTTP/1.1" 200 11579
+<QuerySet [<Statement: Statement object (Statement4)>]>
+(AND: ('factoids__statement__in', <QuerySet [<Statement: Statement object (Statement4)>]>))
+<QuerySet [<Person: John Smith (http://personlist.com/PersonA)>]>
+    
+    """
 
     # If independentStatements flag set, each statement filter can belong to any statem
-    if request.query_params.get("independentStatements") == "true":
-
-        # Go through the statement filters, find which person they apply to,
-
-        for sf in statement_filters:
-            statements = Statement.objects.filter(sf)
-            print(statements)
-            q &= Q(factoids__statement__in=statements)
-        print(q)
-
-    else:
-        st_q = Q()
-        for sf in statement_filters:
-            st_q &= sf
-        statements = Statement.objects.filter(st_q)
-        print(statements)
-        q &= Q(factoids__statement__in=statements)
 
     return q
 
@@ -102,10 +96,29 @@ class PersonsViewSet(viewsets.ViewSet):
         if p := request.query_params.get("sourceId"):
             q &= Q(factoids__source__id=p)
 
-        q = apply_statement_filters(q, request)
+        queryset = Person.objects.filter(q)
 
-        queryset = Person.objects.filter(q).distinct()
+        statement_filters = build_statement_filters(request)
 
+        if request.query_params.get("independentStatements") == "true":
+            # Go through each statement filter
+            for sf in statement_filters:
+                # Get the statements that correspond to that filter
+                statements = Statement.objects.filter(sf)
+                # Apply as a filter to queryset
+                queryset = queryset.filter(factoids__statement__in=statements)
+
+        else:
+            # Otherwise, build a Q object for each param on a statement,
+            # get that statement
+            st_q = Q()
+            for sf in statement_filters:
+                st_q &= sf
+            statements = Statement.objects.filter(st_q)
+            # And then apply it as a filter on the queryset
+            queryset = queryset.filter(factoids__statement__in=statements)
+
+        queryset = queryset.distinct()
         serializer = PersonSerializer(queryset, many=True)
         return Response(serializer.data)
 
