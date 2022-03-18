@@ -124,7 +124,6 @@ class PersonsViewSet(viewsets.ViewSet):
 
     def retrieve(self, request, pk=None):
         queryset = Person.objects.filter(Q(pk=pk) | Q(uris__uri=pk)).first()
-        print(queryset)
         serializer = PersonSerializer(queryset)
         return Response(serializer.data)
 
