@@ -1,4 +1,5 @@
 import datetime
+import json
 
 from haystack import indexes
 
@@ -10,7 +11,19 @@ class PersonIndex(indexes.SearchIndex, indexes.Indexable):
     text = indexes.CharField(document=True, use_template=True)
     label = indexes.CharField(model_attr="label")
     hubModifiedWhen = indexes.DateTimeField(model_attr="hubModifiedWhen")
-    pre_serialized = indexes.CharField(model_attr="pre_serialized")
+    pre_serialized = indexes.CharField()
+    uris = indexes.MultiValueField()
+
+    def prepare_pre_serialized(self, qs):
+        return json.dumps(qs.pre_serialized)
+
+    def prepare_uris(self, qs):
+        print(">>>>", qs.uris.all())
+        values = []
+        for uri in qs.uris.all():
+            values.append(uri.uri)
+        print(values)
+        return values
 
     def get_model(self):
         return Person

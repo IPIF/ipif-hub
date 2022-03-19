@@ -89,6 +89,8 @@
     
     <field name="pre_serialized" type="text_en" indexed="true" stored="true" multiValued="false" />
     
+    <field name="uris" type="text_en" indexed="true" stored="true" multiValued="true" />
+    
     <uniqueKey>id</uniqueKey>
 
     <!--

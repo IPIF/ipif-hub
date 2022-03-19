@@ -12,6 +12,7 @@ from dateutil.parser import parse as parse_date
 
 
 from .models import Factoid, Person, Source, Statement
+from .search_indexes import PersonIndex
 from .serializers import (
     FactoidSerializer,
     PersonSerializer,
@@ -155,12 +156,27 @@ def list_view(object_class, serializer_class):
 
 
 def retrieve_view(object_class, object_serializer):
+
+    # OLD VERSION HITTING DB
     def inner(self, request, pk=None):
         q = Q(pk=pk)
         if object_class in {Person, Source}:  # Only Person and Source have `uris` field
             q |= Q(uris__uri=pk)
         queryset = object_class.objects.filter(q).values("pre_serialized").first()
         return Response(queryset["pre_serialized"])
+
+    # New version hitting SOLR
+    """
+    def inner(self, request, pk):
+        index = globals()[f"{object_class.__name__}Index"]
+        result = index.objects.filter(
+            id=f"ipif_hub.{object_class.__name__.lower()}.{pk}"
+        )
+        try:
+            return Response(json.loads(result[0].pre_serialized))
+        except IndexError:
+            return Response(status=404)
+    """
 
     return inner
 
