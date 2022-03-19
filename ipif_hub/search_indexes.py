@@ -10,6 +10,7 @@ class PersonIndex(indexes.SearchIndex, indexes.Indexable):
     text = indexes.CharField(document=True, use_template=True)
     label = indexes.CharField(model_attr="label")
     hubModifiedWhen = indexes.DateTimeField(model_attr="hubModifiedWhen")
+    pre_serialized = indexes.CharField(model_attr="pre_serialized")
 
     def get_model(self):
         return Person

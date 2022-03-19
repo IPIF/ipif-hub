@@ -1,3 +1,4 @@
+import json
 from typing import List
 
 
@@ -145,9 +146,10 @@ def list_view(object_class, serializer_class):
             # ...and then apply it as a filter on the queryset
             queryset = queryset.filter(**qd("statement__in", statements))
 
-        queryset = queryset.distinct()
-        serializer = serializer_class(queryset, many=True)
-        return Response(serializer.data)
+        # Finally, get the pre-serialized result from the db and return
+        queryset = queryset.distinct().values("pre_serialized")
+        result = [o["pre_serialized"] for o in queryset]
+        return Response(result)
 
     return inner
 
@@ -157,9 +159,8 @@ def retrieve_view(object_class, object_serializer):
         q = Q(pk=pk)
         if object_class in {Person, Source}:  # Only Person and Source have `uris` field
             q |= Q(uris__uri=pk)
-        queryset = object_class.objects.filter(q).first()
-        serializer = object_serializer(queryset)
-        return Response(serializer.data)
+        queryset = object_class.objects.filter(q).values("pre_serialized").first()
+        return Response(queryset["pre_serialized"])
 
     return inner
 

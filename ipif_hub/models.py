@@ -50,11 +50,13 @@ class Factoid(IpifEntityAbstractBase):
         related_query_name="factoid",
         related_name="factoid",
     )
+    pre_serialized = models.JSONField(default=dict, blank=True)
 
 
 class Person(IpifEntityAbstractBase):
     label = models.CharField(max_length=300, default="")
     uris = models.ManyToManyField("URI", blank=True)
+    pre_serialized = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
         uri_string = (
@@ -66,6 +68,8 @@ class Person(IpifEntityAbstractBase):
 
 
 class Statement(IpifEntityAbstractBase):
+    pre_serialized = models.JSONField(default=dict, blank=True)
+
     statementType_uri = models.URLField(blank=True, null=True)
     statementType_label = models.CharField(max_length=300, blank=True, null=True)
 
@@ -92,6 +96,7 @@ class Statement(IpifEntityAbstractBase):
 class Source(IpifEntityAbstractBase):
     label = models.CharField(max_length=300, default="")
     uris = models.ManyToManyField("URI", blank=True)
+    pre_serialized = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
         uri_string = (
