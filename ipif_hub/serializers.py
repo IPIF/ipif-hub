@@ -17,6 +17,16 @@ class GenericRefSerializer:
         return {"@id": id, **data}
 
 
+class PlacesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Place
+        fields = ["uri", "label"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        return {"@id": data["uri"], "label": data["label"], "uri": data["uri"]}
+
+
 class PersonRefSerializer(GenericRefSerializer, serializers.ModelSerializer):
     class Meta:
         model = Person
@@ -137,16 +147,6 @@ class SourceSerializer(serializers.ModelSerializer):
             **data,
             "factoid-refs": factoids,
         }
-
-
-class PlacesSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Place
-        fields = ["uri", "label"]
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        return {"@id": data["uri"], "label": data["label"], "uri": data["uri"]}
 
 
 class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):

@@ -1,4 +1,6 @@
 from typing import List
+
+
 from django.db.models import Q
 
 from rest_framework import viewsets
@@ -19,6 +21,8 @@ from .serializers import (
 
 def build_statement_filters(request) -> List:
     """
+    Builds a list of statement filters
+
     ✅ statementText
     ✅ relatesToPerson
     ✅ memberOf
@@ -61,121 +65,120 @@ def build_statement_filters(request) -> List:
         date = parse_date(p, default=datetime.date(2030, 1, 1))
         statement_filters.append(Q(date_sortdate__lte=date))
 
-    # If no statement filters are found, just return the Q object early
     return statement_filters
 
-    # Create a statement Q object
-    """
-    Combining together is producing STATEMENT5... ???
 
-    (AND: ('factoids__statement__in', <QuerySet [<Statement: Statement object (Statement1)>]>))
-<QuerySet [<Person: John Smith (http://personlist.com/PersonA)>]>
-[18/Mar/2022 08:10:02] "GET /ipif/persons/?name=John%20Smith&independentStatements=true HTTP/1.1" 200 11579
-<QuerySet [<Statement: Statement object (Statement4)>]>
-(AND: ('factoids__statement__in', <QuerySet [<Statement: Statement object (Statement4)>]>))
-<QuerySet [<Person: John Smith (http://personlist.com/PersonA)>]>
-    
+def query_dict(path):
+    def inner(field, param):
+        return {f"{path}{field}": param}
+
+    return inner
+
+
+def list_view(object_class, serializer_class):
     """
 
-    # If independentStatements flag set, each statement filter can belong to any statem
+    p
+    ✅ factoidId
+    f
+    ✅ statementId
+    st
+    ✅ sourceId
+    s"""
 
-    return q
+    def inner(self, request):
 
-
-class PersonsViewSet(viewsets.ViewSet):
-    def list(self, request):
+        # Fields are directly on Factoids, unlike other models where we
+        # need to access *via* a Factoid
+        if object_class is Factoid:
+            qd = query_dict("")
+        else:
+            qd = query_dict("factoids__")
 
         q = Q()
 
         if p := request.query_params.get("factoidId"):
-            q &= Q(factoids__id=p)
+            q &= Q(**qd("id", p))
 
         if p := request.query_params.get("statementId"):
-            q &= Q(factoids__statement__id=p)
+            q &= Q(**qd("statement__id", p))
 
         if p := request.query_params.get("sourceId"):
-            q &= Q(factoids__source__id=p)
+            q &= Q(**qd("source__id", p))
 
-        queryset = Person.objects.filter(q)
+        queryset = object_class.objects.filter(q)
 
         statement_filters = build_statement_filters(request)
 
-        if request.query_params.get("independentStatements") == "true":
+        # If querying /statements endpoint, statement_filters should be applied
+        # directly to the statement queryset
+        if object_class == Statement:
+            st_q = Q()
+            for sf in statement_filters:
+                st_q &= sf
+            queryset = queryset.filter(st_q)
+
+        elif request.query_params.get("independentStatements") == "matchAll":
             # Go through each statement filter
             for sf in statement_filters:
                 # Get the statements that correspond to that filter
                 statements = Statement.objects.filter(sf)
                 # Apply as a filter to queryset
-                queryset = queryset.filter(factoids__statement__in=statements)
+                queryset = queryset.filter(**qd("statement__in", statements))
+
+        elif request.query_params.get("independentStatements") == "matchAny":
+            st_q = Q()
+            for sf in statement_filters:
+                st_q |= sf
+            # ...get that statement...
+            statements = Statement.objects.filter(st_q)
+            # ...and then apply it as a filter on the queryset
+            queryset = queryset.filter(**qd("statement__in", statements))
 
         else:
-            # Otherwise, build a Q object for each param on a statement,
-            # get that statement
+            # Otherwise, build a Q object ANDing together each statement filter...
             st_q = Q()
             for sf in statement_filters:
                 st_q &= sf
+            # ...get that statement...
             statements = Statement.objects.filter(st_q)
-            # And then apply it as a filter on the queryset
-            queryset = queryset.filter(factoids__statement__in=statements)
+            # ...and then apply it as a filter on the queryset
+            queryset = queryset.filter(**qd("statement__in", statements))
 
         queryset = queryset.distinct()
-        serializer = PersonSerializer(queryset, many=True)
+        serializer = serializer_class(queryset, many=True)
         return Response(serializer.data)
 
-    def retrieve(self, request, pk=None):
-        queryset = Person.objects.filter(Q(pk=pk) | Q(uris__uri=pk)).first()
-        serializer = PersonSerializer(queryset)
+    return inner
+
+
+def retrieve_view(object_class, object_serializer):
+    def inner(self, request, pk=None):
+        q = Q(pk=pk)
+        if object_class in {Person, Source}:  # Only Person and Source have `uris` field
+            q |= Q(uris__uri=pk)
+        queryset = object_class.objects.filter(q).first()
+        serializer = object_serializer(queryset)
         return Response(serializer.data)
 
-
-"""
-size
-page
-sortBy
-
-p
-✅ factoidId
-f
-✅ statementId
-st
-✅ sourceId
-s
+    return inner
 
 
-"""
+def build_viewset(object_class) -> viewsets.ViewSet:
+    viewset = f"{object_class.__name__}ViewSet"
+    serializer = globals()[f"{object_class.__name__}Serializer"]
+    return type(
+        viewset,
+        (viewsets.ViewSet,),
+        {
+            "list": list_view(object_class, serializer),
+            "retrieve": retrieve_view(object_class, serializer),
+        },
+    )
 
 
-class SourceViewSet(viewsets.ViewSet):
-    def list(self, request):
-        queryset = Source.objects.all()
-        serializer = SourceSerializer(queryset, many=True)
-        return Response(serializer.data)
-
-    def retrieve(self, request, pk=None):
-        queryset = Source.objects.filter(Q(pk=pk) | Q(uris__uri=pk)).first()
-        serializer = SourceSerializer(queryset)
-        return Response(serializer.data)
-
-
-class FactoidViewSet(viewsets.ViewSet):
-    def list(self, request):
-        queryset = Factoid.objects.all()
-        serializer = FactoidSerializer(queryset, many=True)
-        return Response(serializer.data)
-
-    def retrieve(self, request, pk=None):
-        queryset = Factoid.objects.filter(pk=pk).first()
-        serializer = FactoidSerializer(queryset)
-        return Response(serializer.data)
-
-
-class StatementViewSet(viewsets.ViewSet):
-    def list(self, request):
-        queryset = Statement.objects.all()
-        serializer = StatementSerializer(queryset, many=True)
-        return Response(serializer.data)
-
-    def retrieve(self, request, pk=None):
-        queryset = Statement.objects.filter(pk=pk).first()
-        serializer = StatementSerializer(queryset)
-        return Response(serializer.data)
+# Construct these viewsets
+PersonViewSet = build_viewset(Person)
+SourceViewSet = build_viewset(Source)
+FactoidViewSet = build_viewset(Factoid)
+StatementViewSet = build_viewset(Statement)
