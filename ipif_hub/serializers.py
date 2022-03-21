@@ -155,7 +155,7 @@ class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
 
     class Meta:
         model = Statement
-        exclude = ["ipif_repo", "hubIngestedWhen", "hubModifiedWhen"]
+        exclude = ["ipif_repo", "hubIngestedWhen", "hubModifiedWhen", "pre_serialized"]
 
     def to_representation(self, instance):
         """Converts Statement data to IPIF output format:

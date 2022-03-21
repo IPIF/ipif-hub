@@ -2,6 +2,8 @@ from django.urls import path
 
 from .api_views import FactoidViewSet, PersonViewSet, SourceViewSet, StatementViewSet
 
+from .models import IpifRepo
+
 urlpatterns = [
     path("persons/", PersonViewSet.as_view({"get": "list"})),
     path("persons/<path:pk>", PersonViewSet.as_view({"get": "retrieve"})),

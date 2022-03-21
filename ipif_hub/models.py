@@ -47,8 +47,8 @@ class Factoid(IpifEntityAbstractBase):
     statement = models.ManyToManyField(
         "Statement",
         verbose_name="statements",
-        related_query_name="factoid",
-        related_name="factoid",
+        related_query_name="factoids",
+        related_name="factoids",
     )
     pre_serialized = models.JSONField(default=dict, blank=True)
 
