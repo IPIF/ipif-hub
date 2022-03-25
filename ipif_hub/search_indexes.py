@@ -3,6 +3,8 @@ import json
 
 from haystack import indexes
 
+from ipif_hub.serializers import PersonSerializer
+
 from .models import Person, Source
 
 
@@ -15,7 +17,7 @@ class PersonIndex(indexes.SearchIndex, indexes.Indexable):
     uris = indexes.MultiValueField()
 
     def prepare_pre_serialized(self, qs):
-        return json.dumps(qs.pre_serialized)
+        return json.dumps(PersonSerializer(qs).data)
 
     def prepare_uris(self, qs):
         print(">>>>", qs.uris.all())

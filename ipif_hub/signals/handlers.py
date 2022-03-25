@@ -8,16 +8,14 @@ from ipif_hub.serializers import (
     SourceSerializer,
     StatementSerializer,
 )
-
+from ipif_hub.search_indexes import PersonIndex
 
 """
 Let's pre-serialize everything and slap that in the database too!
 """
 
-from functools import wraps
 
 """
-
 @receiver(pre_save, sender=Factoid)
 def pre_serialize_factoid(sender, instance, **kwargs):
 
@@ -30,17 +28,18 @@ def pre_serialize_factoid(sender, instance, **kwargs):
     for statement in instance.statement.all():
 
         statement.save()
+"""
 
 
 @receiver(pre_save, sender=Person)
 def pre_serialize_person(sender, instance, **kwargs):
 
-    instance.pre_serialized = PersonSerializer(instance).data
+    ss = PersonIndex.objects.filter(django_id=instance.pk)
+    for s in ss:
+        s.searchindex.update_object(instance)
 
-    for factoid in instance.factoids:
-        factoid.save()
 
-
+"""
 @receiver(pre_save, sender=Source)
 def pre_serialize_source(sender, instance, **kwargs):
 
