@@ -20,7 +20,6 @@ class PersonIndex(indexes.SearchIndex, indexes.Indexable):
         return json.dumps(PersonSerializer(qs).data)
 
     def prepare_uris(self, qs):
-        print(">>>>", qs.uris.all())
         values = []
         for uri in qs.uris.all():
             values.append(uri.uri)
