@@ -83,11 +83,11 @@
     
     <field name="text" type="text_en" indexed="true" stored="true" multiValued="false" />
     
-    <field name="label" type="text_en" indexed="true" stored="true" multiValued="false" />
-    
     <field name="hubModifiedWhen" type="date" indexed="true" stored="true" multiValued="false" />
     
     <field name="pre_serialized" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="label" type="text_en" indexed="true" stored="true" multiValued="false" />
     
     <field name="uris" type="text_en" indexed="true" stored="true" multiValued="true" />
     

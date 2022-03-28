@@ -30,13 +30,13 @@ class PlacesSerializer(serializers.ModelSerializer):
 class PersonRefSerializer(GenericRefSerializer, serializers.ModelSerializer):
     class Meta:
         model = Person
-        fields = ["id"]
+        fields = ["id", "label"]
 
 
 class SourceRefSerializer(GenericRefSerializer, serializers.ModelSerializer):
     class Meta:
         model = Source
-        fields = ["id"]
+        fields = ["id", "label"]
 
 
 class StatementRefSerializer(GenericRefSerializer, serializers.ModelSerializer):

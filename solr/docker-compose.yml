@@ -7,3 +7,14 @@ services:
     volumes:
       - ./conf/schema.xml:/opt/solr/conf/schema.xml
     command: 'bash -e -c "precreate-core mycore; cp /opt/solr/conf/schema.xml /opt/solr/server/solr/mycores/mycore/conf/schema.xml; cp /opt/solr/server/solr/configsets/basic_configs/conf/solrconfig.xml /opt/solr/server/solr/mycores/mycore/conf/solrconfig.xml; rm /opt/solr/server/solr/mycores/mycore/conf/managed-schema; solr-foreground;"'
+  cache:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning
+    volumes:
+      - cache:/data
+volumes:
+  cache:
+    driver: local

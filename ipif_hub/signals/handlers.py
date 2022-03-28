@@ -1,5 +1,6 @@
-from django.db.models.signals import pre_save, m2m_changed
+from django.db.models.signals import post_save, m2m_changed
 from django.dispatch import receiver
+
 
 from ipif_hub.models import Person, Source, Statement, Factoid
 from ipif_hub.serializers import (
@@ -10,46 +11,29 @@ from ipif_hub.serializers import (
 )
 from ipif_hub.search_indexes import PersonIndex
 
-"""
-Let's pre-serialize everything and slap that in the database too!
-"""
+from ipif_hub.tasks import (
+    update_factoid_index,
+    update_person_index,
+    update_source_index,
+)
 
 
-"""
-@receiver(pre_save, sender=Factoid)
+@receiver(post_save, sender=Factoid)
 def pre_serialize_factoid(sender, instance, **kwargs):
-
-    instance.pre_serialized = FactoidSerializer(instance).data
-
-    instance.person.save()
-
-    instance.source.save()
-
-    for statement in instance.statement.all():
-
-        statement.save()
-"""
+    update_factoid_index.delay(instance.pk)
 
 
-@receiver(pre_save, sender=Person)
+@receiver(post_save, sender=Person)
 def pre_serialize_person(sender, instance, **kwargs):
+    update_person_index.delay(instance.pk)
 
-    ss = PersonIndex.objects.filter(django_id=instance.pk)
-    for s in ss:
-        s.searchindex.update_object(instance)
+
+@receiver(post_save, sender=Source)
+def pre_serialize_source(sender, instance, **kwargs):
+    update_source_index.delay(instance.pk)
 
 
 """
-@receiver(pre_save, sender=Source)
-def pre_serialize_source(sender, instance, **kwargs):
-
-    instance.pre_serialized = SourceSerializer(instance).data
-
-    for factoid in instance.factoids.all():
-
-        factoid.save()
-
-
 @receiver(pre_save, sender=Statement)
 def pre_serialize_statement(sender, instance, **kwargs):
 

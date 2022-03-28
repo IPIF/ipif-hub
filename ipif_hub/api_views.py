@@ -12,7 +12,7 @@ from dateutil.parser import parse as parse_date
 
 
 from .models import Factoid, Person, Source, Statement
-from .search_indexes import PersonIndex
+from .search_indexes import PersonIndex, FactoidIndex, SourceIndex
 from .serializers import (
     FactoidSerializer,
     PersonSerializer,
