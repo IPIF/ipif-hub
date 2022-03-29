@@ -1,1 +1,4 @@
-{{ object.pk }}
+{{ object.id }}
+{{ object.label }}
+{{ object.createdBy }}
+{{ object.modifiedBy }}

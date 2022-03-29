@@ -11,10 +11,15 @@ from .models import Person, Source, Factoid, Statement
 class PersonIndex(indexes.SearchIndex, indexes.Indexable):
 
     text = indexes.CharField(document=True, use_template=True)
+    ipif_repo_id = indexes.CharField()
+
     label = indexes.CharField(model_attr="label")
     hubModifiedWhen = indexes.DateTimeField(model_attr="hubModifiedWhen")
     pre_serialized = indexes.CharField()
     uris = indexes.MultiValueField()
+
+    def prepare_ipif_repo_id(self, qs):
+        return qs.ipif_repo.id
 
     def prepare_pre_serialized(self, qs):
         return json.dumps(PersonSerializer(qs).data)
@@ -43,10 +48,12 @@ class PersonIndex(indexes.SearchIndex, indexes.Indexable):
 class FactoidIndex(indexes.SearchIndex, indexes.Indexable):
 
     text = indexes.CharField(document=True, use_template=True)
-    # label = indexes.CharField(model_attr="label")
+    ipif_repo_id = indexes.CharField()
     hubModifiedWhen = indexes.DateTimeField(model_attr="hubModifiedWhen")
     pre_serialized = indexes.CharField()
-    # uris = indexes.MultiValueField()
+
+    def prepare_ipif_repo_id(self, qs):
+        return qs.ipif_repo.id
 
     def prepare_pre_serialized(self, qs):
         return json.dumps(FactoidSerializer(qs).data)
@@ -64,10 +71,13 @@ class FactoidIndex(indexes.SearchIndex, indexes.Indexable):
 class SourceIndex(indexes.SearchIndex, indexes.Indexable):
 
     text = indexes.CharField(document=True, use_template=True)
-    label = indexes.CharField(model_attr="label")
+    ipif_repo_id = indexes.CharField()
     hubModifiedWhen = indexes.DateTimeField(model_attr="hubModifiedWhen")
     pre_serialized = indexes.CharField()
     uris = indexes.MultiValueField()
+
+    def prepare_ipif_repo_id(self, qs):
+        return qs.ipif_repo.id
 
     def prepare_pre_serialized(self, qs):
         return json.dumps(SourceSerializer(qs).data)
@@ -84,8 +94,13 @@ class SourceIndex(indexes.SearchIndex, indexes.Indexable):
 
 class StatementIndex(indexes.SearchIndex, indexes.Indexable):
     text = indexes.CharField(document=True, use_template=True)
+    ipif_repo_id = indexes.CharField()
+
     hubModifiedWhen = indexes.DateTimeField(model_attr="hubModifiedWhen")
     pre_serialized = indexes.CharField()
+
+    def prepare_ipif_repo_id(self, qs):
+        return qs.ipif_repo.id
 
     def get_model(self):
         return Statement

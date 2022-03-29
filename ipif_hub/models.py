@@ -32,6 +32,8 @@ class IpifEntityAbstractBase(models.Model):
 
 
 class Factoid(IpifEntityAbstractBase):
+    label = models.CharField(max_length=300, default="")
+
     person = models.ForeignKey(
         "Person",
         on_delete=models.CASCADE,
@@ -68,6 +70,8 @@ class Person(IpifEntityAbstractBase):
 
 
 class Statement(IpifEntityAbstractBase):
+    label = models.CharField(max_length=300, default="")
+
     pre_serialized = models.JSONField(default=dict, blank=True)
 
     statementType_uri = models.URLField(blank=True, null=True)
