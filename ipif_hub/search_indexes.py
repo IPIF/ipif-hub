@@ -3,7 +3,12 @@ import json
 
 from haystack import indexes
 
-from ipif_hub.serializers import FactoidSerializer, PersonSerializer, SourceSerializer
+from ipif_hub.serializers import (
+    FactoidSerializer,
+    PersonSerializer,
+    SourceSerializer,
+    StatementSerializer,
+)
 
 from .models import Person, Source, Factoid, Statement
 
@@ -98,6 +103,9 @@ class StatementIndex(indexes.SearchIndex, indexes.Indexable):
 
     hubModifiedWhen = indexes.DateTimeField(model_attr="hubModifiedWhen")
     pre_serialized = indexes.CharField()
+
+    def prepare_pre_serialized(self, qs):
+        return json.dumps(StatementSerializer(qs).data)
 
     def prepare_ipif_repo_id(self, qs):
         return qs.ipif_repo.id

@@ -1,6 +1,11 @@
 from celery import shared_task
-from ipif_hub.search_indexes import FactoidIndex, PersonIndex, SourceIndex
-from ipif_hub.models import Factoid, Person, Source
+from ipif_hub.search_indexes import (
+    FactoidIndex,
+    PersonIndex,
+    SourceIndex,
+    StatementIndex,
+)
+from ipif_hub.models import Factoid, Person, Source, Statement
 from celery.utils.log import get_task_logger
 
 
@@ -23,6 +28,12 @@ def update_factoid_index(instance_pk):
     for source_search in source_searches:
         source_search.searchindex.update_object(source)
 
+    statements = Factoid.objects.get(pk=instance_pk).statement.all()
+    for statement in statements:
+        statement_searches = StatementIndex.objects.filter(django_id=statement.pk)
+        for statement_search in statement_searches:
+            statement_search.searchindex.update_object(statement)
+
 
 @shared_task
 def update_person_index(instance_pk):
@@ -37,4 +48,12 @@ def update_source_index(instance_pk):
     source = Source.objects.get(pk=instance_pk)
 
     for factoid in source.factoids.all():
+        update_factoid_index.delay(factoid.pk)
+
+
+@shared_task
+def update_statement_index(instance_pk):
+    statement = Statement.objects.get(pk=instance_pk)
+
+    for factoid in statement.factoids.all():
         update_factoid_index.delay(factoid.pk)

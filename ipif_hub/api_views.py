@@ -12,7 +12,7 @@ from dateutil.parser import parse as parse_date
 
 
 from .models import Factoid, Person, Source, Statement
-from .search_indexes import PersonIndex, FactoidIndex, SourceIndex
+from .search_indexes import PersonIndex, FactoidIndex, SourceIndex, StatementIndex
 from .serializers import (
     FactoidSerializer,
     PersonSerializer,
@@ -176,6 +176,7 @@ def retrieve_view(object_class, object_serializer):
         result = index.objects.filter(
             id=f"ipif_hub.{object_class.__name__.lower()}.{pk}"
         )
+        print(result[0])
         try:
             return Response(json.loads(result[0].pre_serialized))
         except IndexError:

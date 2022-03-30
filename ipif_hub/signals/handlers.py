@@ -15,6 +15,7 @@ from ipif_hub.tasks import (
     update_factoid_index,
     update_person_index,
     update_source_index,
+    update_statement_index,
 )
 
 
@@ -33,13 +34,6 @@ def pre_serialize_source(sender, instance, **kwargs):
     update_source_index.delay(instance.pk)
 
 
-"""
-@receiver(pre_save, sender=Statement)
+@receiver(post_save, sender=Statement)
 def pre_serialize_statement(sender, instance, **kwargs):
-
-    instance.pre_serialized = StatementSerializer(instance).data
-
-    for factoid in instance.factoid.all():
-
-        factoid.save()
-"""
+    update_statement_index.delay(instance.pk)
