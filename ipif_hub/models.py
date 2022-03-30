@@ -6,13 +6,18 @@ from django.forms import ValidationError
 class IpifEntityAbstractBase(models.Model):
     class Meta:
         abstract = True
-        # unique_together = [["local_id", "ipif_repo"]]
+        unique_together = [["local_id", "ipif_repo"]]
 
+    # This setting id like this is a HACK (?)
+    # Idea being, user provides a local id, which we make global by prefixing the repo id
+    # then save this as PK —— see the save() method below
     id = models.URLField(primary_key=True, default="http://noneset.com", editable=False)
+
     local_id = models.CharField(max_length=50, blank=True)
     ipif_repo = models.ForeignKey(
         "IpifRepo", verbose_name="IPIF Repository", on_delete=models.CASCADE
     )
+    label = models.CharField(max_length=300, default="")
 
     createdBy = models.CharField(max_length=300)
     createdWhen = models.DateField()
@@ -38,7 +43,6 @@ class IpifEntityAbstractBase(models.Model):
 
 
 class Factoid(IpifEntityAbstractBase):
-    label = models.CharField(max_length=300, default="")
 
     person = models.ForeignKey(
         "Person",
@@ -58,13 +62,11 @@ class Factoid(IpifEntityAbstractBase):
         related_query_name="factoids",
         related_name="factoids",
     )
-    pre_serialized = models.JSONField(default=dict, blank=True)
 
 
 class Person(IpifEntityAbstractBase):
-    label = models.CharField(max_length=300, default="")
+
     uris = models.ManyToManyField("URI", blank=True)
-    pre_serialized = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
         uri_string = (
@@ -76,9 +78,6 @@ class Person(IpifEntityAbstractBase):
 
 
 class Statement(IpifEntityAbstractBase):
-    label = models.CharField(max_length=300, default="")
-
-    pre_serialized = models.JSONField(default=dict, blank=True)
 
     statementType_uri = models.URLField(blank=True, null=True)
     statementType_label = models.CharField(max_length=300, blank=True, null=True)
@@ -104,9 +103,8 @@ class Statement(IpifEntityAbstractBase):
 
 
 class Source(IpifEntityAbstractBase):
-    label = models.CharField(max_length=300, default="")
+
     uris = models.ManyToManyField("URI", blank=True)
-    pre_serialized = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
         uri_string = (
