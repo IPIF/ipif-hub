@@ -5,20 +5,20 @@
         "endpoint_uri": "http://ahpiss.com",
         "refresh_frequency": "daily",
         "refresh_time": "00:00",
-        "endpoint_has_ipif": false
+        "endpoint_has_ipif": false,
+        "ids_are_local": true
     },
     "factoids": [{
-        "_id": "Factoid1",
+        "@id": "Factoid1",
         "person": "Person1",
         "source": "Source1",
         "statements": [
-            "Statement1",
-            "Statement2",
-            "Statement3"
+            "St1-John-Smith-Name",
+            "St2-jsmith-teacher"
         ]
     }],
     "persons": [{
-        "_id": "Person1",
+        "@id": "Person1",
         "label": "Person Number One",
         "uris": ["http://ahpiss.com/Person1", "http://gnd.de/Person1"],
         "createdBy": "Researcher1",
@@ -28,7 +28,7 @@
 
     }],
     "sources": [{
-            "_id": "Source1",
+            "@id": "Source1",
             "label": "Source Number One (Smith, 1900)",
             "uris": ["http://books.net/s1", "http://whsmith.com/sno"],
             "createdBy": "Researcher1",
@@ -38,7 +38,32 @@
         }
 
     ],
-    "statements": [
+    "statements": [{
+            "@id": "St1-John-Smith-Name",
+            "places": [],
+            "createdBy": "RHadden",
+            "createdWhen": "2022-03-25",
+            "modifiedBy": "RHadden",
+            "modifiedWhen": "2022-03-25",
+            "label": "",
+            "statementType": {
+                "uri": "http://vocabs.com/hasName",
+                "label": "Has Name"
+            },
+            "name": "John Smith"
+        },
+        {
+            "@id": "St2-jsmith-teacher",
+            "places": [],
+            "createdBy": "RHadden",
+            "createdWhen": "2022-03-25",
+            "modifiedBy": "RHadden",
+            "modifiedWhen": "2022-03-25",
+            "label": "",
 
+            "role": {
+                "label": "teacher"
+            }
+        }
     ]
 }

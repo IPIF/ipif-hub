@@ -24,7 +24,7 @@ class PersonIndex(indexes.SearchIndex, indexes.Indexable):
     uris = indexes.MultiValueField()
 
     def prepare_ipif_repo_id(self, qs):
-        return qs.ipif_repo.id
+        return qs.ipif_repo.endpoint_url
 
     def prepare_pre_serialized(self, qs):
         return json.dumps(PersonSerializer(qs).data)
@@ -58,7 +58,7 @@ class FactoidIndex(indexes.SearchIndex, indexes.Indexable):
     pre_serialized = indexes.CharField()
 
     def prepare_ipif_repo_id(self, qs):
-        return qs.ipif_repo.id
+        return qs.ipif_repo.endpoint_url
 
     def prepare_pre_serialized(self, qs):
         return json.dumps(FactoidSerializer(qs).data)
@@ -77,12 +77,17 @@ class SourceIndex(indexes.SearchIndex, indexes.Indexable):
 
     text = indexes.CharField(document=True, use_template=True)
     ipif_repo_id = indexes.CharField()
+    local_id = indexes.CharField(model_attr="local_id")
+    ipif_type = indexes.CharField()
     hubModifiedWhen = indexes.DateTimeField(model_attr="hubModifiedWhen")
     pre_serialized = indexes.CharField()
     uris = indexes.MultiValueField()
 
+    def prepare_ipif_type(self, qs):
+        return "source"
+
     def prepare_ipif_repo_id(self, qs):
-        return qs.ipif_repo.id
+        return qs.ipif_repo.endpoint_url
 
     def prepare_pre_serialized(self, qs):
         return json.dumps(SourceSerializer(qs).data)

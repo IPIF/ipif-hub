@@ -1,12 +1,15 @@
 from django.db import models
+from django.core.validators import URLValidator
+from django.forms import ValidationError
 
 
 class IpifEntityAbstractBase(models.Model):
     class Meta:
         abstract = True
-        unique_together = [["id", "ipif_repo"]]
+        # unique_together = [["local_id", "ipif_repo"]]
 
-    id = models.CharField(max_length=300, primary_key=True)
+    id = models.URLField(primary_key=True, default="http://noneset.com", editable=False)
+    local_id = models.CharField(max_length=50, blank=True)
     ipif_repo = models.ForeignKey(
         "IpifRepo", verbose_name="IPIF Repository", on_delete=models.CASCADE
     )
@@ -19,16 +22,19 @@ class IpifEntityAbstractBase(models.Model):
     hubIngestedWhen = models.DateTimeField(auto_now_add=True)
     hubModifiedWhen = models.DateTimeField(auto_now=True)
 
-    @property
-    def qualified_id(self):
+    def build_uri_id_from_slug(self, id):
         """Returns the full IPIF-compliant URL version of the entity"""
         url = (
-            self.ipif_repo.uri[:-1]
-            if self.ipif_repo.uri.endswith("/")
-            else self.ipif_repo.uri
+            self.ipif_repo.endpoint_url[:-1]
+            if self.ipif_repo.endpoint_url.endswith("/")
+            else self.ipif_repo.endpoint_url
         )
         entity_type = f"{type(self).__name__.lower()}s"
-        return f"{url}/{entity_type}/{self.id}"
+        return f"{url}/{entity_type}/{id}"
+
+    def save(self, *args, **kwargs):
+        self.id = self.build_uri_id_from_slug(self.local_id)
+        super().save(*args, **kwargs)
 
 
 class Factoid(IpifEntityAbstractBase):
@@ -112,8 +118,13 @@ class Source(IpifEntityAbstractBase):
 
 
 class IpifRepo(models.Model):
-    id = models.CharField(max_length=300, unique=True, primary_key=True)
-    uri = models.URLField()
+    endpoint_slug = models.CharField(max_length=20, primary_key=True)
+    endpoint_url = models.URLField()
+    refresh_frequency = models.CharField(
+        max_length=10, choices=(("daily", "daily"), ("weekly", "weekly"))
+    )
+    refresh_time = models.TimeField()
+    endpoint_is_ipif = models.BooleanField()
 
 
 class Place(models.Model):

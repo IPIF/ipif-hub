@@ -7,6 +7,9 @@ from django.db.models import Q
 from rest_framework import viewsets
 from rest_framework.response import Response
 
+from haystack.query import SQ, SearchQuerySet
+
+
 import datetime
 from dateutil.parser import parse as parse_date
 
@@ -109,6 +112,7 @@ def list_view(object_class, serializer_class):
             q &= Q(**qd("source__id", p))
 
         queryset = object_class.objects.filter(q)
+        print("QSS", queryset)
 
         statement_filters = build_statement_filters(request)
 
@@ -137,7 +141,7 @@ def list_view(object_class, serializer_class):
             # ...and then apply it as a filter on the queryset
             queryset = queryset.filter(**qd("statement__in", statements))
 
-        else:
+        elif statement_filters:
             # Otherwise, build a Q object ANDing together each statement filter...
             st_q = Q()
             for sf in statement_filters:
@@ -147,10 +151,10 @@ def list_view(object_class, serializer_class):
             # ...and then apply it as a filter on the queryset
             queryset = queryset.filter(**qd("statement__in", statements))
 
-        # Finally, get the pre-serialized result from the db and return
-        queryset = queryset.distinct().values("pre_serialized")
-        result = [o["pre_serialized"] for o in queryset]
-        return Response(result)
+        # DIRTY TEMP HACK —— get the resulting serializations from Solr
+        solr_pks = [r.pk for r in queryset.distinct()]
+        result = SearchQuerySet().filter(django_id__in=solr_pks)
+        return Response([json.loads(r.pre_serialized) for r in result])
 
     return inner
 
@@ -173,9 +177,13 @@ def retrieve_view(object_class, object_serializer):
     def inner(self, request, pk):
         print("getting")
         index = globals()[f"{object_class.__name__}Index"]
-        result = index.objects.filter(
-            id=f"ipif_hub.{object_class.__name__.lower()}.{pk}"
+        print(dir(request))
+
+        sq = SQ(id=f"ipif_hub.{object_class.__name__.lower()}.{pk}") | (
+            SQ(local_id=pk) & SQ(ipif_type=object_class.__name__.lower())
         )
+
+        result = index.objects.filter(sq)
         print(result[0])
         try:
             return Response(json.loads(result[0].pre_serialized))

@@ -93,6 +93,10 @@
     
     <field name="uris" type="text_en" indexed="true" stored="true" multiValued="true" />
     
+    <field name="local_id" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="ipif_type" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
     <uniqueKey>id</uniqueKey>
 
     <!--
