@@ -13,31 +13,30 @@ from ipif_hub.serializers import (
 from .models import Person, Source, Factoid, Statement
 
 
-class PersonIndex(indexes.SearchIndex, indexes.Indexable):
-
-    text = indexes.CharField(document=True, use_template=True)
+class BaseIndex(indexes.SearchIndex):
+    local_id = indexes.CharField(model_attr="local_id")
     ipif_repo_id = indexes.CharField()
-
+    ipif_type = indexes.CharField()
     label = indexes.CharField(model_attr="label")
     hubModifiedWhen = indexes.DateTimeField(model_attr="hubModifiedWhen")
     pre_serialized = indexes.CharField()
-    uris = indexes.MultiValueField()
+    text = indexes.CharField(document=True, use_template=True)
 
     def prepare_ipif_repo_id(self, qs):
         return qs.ipif_repo.endpoint_url
 
+    def prepare_ipif_type(self, qs):
+        return self.get_model().__name__.lower()
+
     def prepare_pre_serialized(self, qs):
-        return json.dumps(PersonSerializer(qs).data)
+        serializer = globals()[f"{self.get_model().__name__}Serializer"]
+        return json.dumps(serializer(qs).data)
 
     def prepare_uris(self, qs):
         values = []
         for uri in qs.uris.all():
             values.append(uri.uri)
-        print(values)
         return values
-
-    def get_model(self):
-        return Person
 
     def index_queryset(self, using=None):
         ### THIS ALSO NEEDS TO BE CHANGED TO ALSO UPDATE WHEN RELATED MODELS ARE
@@ -50,71 +49,26 @@ class PersonIndex(indexes.SearchIndex, indexes.Indexable):
         )
 
 
-class FactoidIndex(indexes.SearchIndex, indexes.Indexable):
-
-    text = indexes.CharField(document=True, use_template=True)
-    ipif_repo_id = indexes.CharField()
-    hubModifiedWhen = indexes.DateTimeField(model_attr="hubModifiedWhen")
-    pre_serialized = indexes.CharField()
-
-    def prepare_ipif_repo_id(self, qs):
-        return qs.ipif_repo.endpoint_url
-
-    def prepare_pre_serialized(self, qs):
-        return json.dumps(FactoidSerializer(qs).data)
-
+class FactoidIndex(BaseIndex, indexes.Indexable):
     def get_model(self):
         return Factoid
 
-    def index_queryset(self, using=None):
-        """Used when the entire index for model is updated."""
-        return self.get_model().objects.filter(
-            hubModifiedWhen__lte=datetime.datetime.now()
-        )
 
-
-class SourceIndex(indexes.SearchIndex, indexes.Indexable):
-
-    text = indexes.CharField(document=True, use_template=True)
-    ipif_repo_id = indexes.CharField()
-    local_id = indexes.CharField(model_attr="local_id")
-    ipif_type = indexes.CharField()
-    hubModifiedWhen = indexes.DateTimeField(model_attr="hubModifiedWhen")
-    pre_serialized = indexes.CharField()
+class PersonIndex(BaseIndex, indexes.Indexable):
     uris = indexes.MultiValueField()
 
-    def prepare_ipif_type(self, qs):
-        return "source"
+    def get_model(self):
+        return Person
 
-    def prepare_ipif_repo_id(self, qs):
-        return qs.ipif_repo.endpoint_url
 
-    def prepare_pre_serialized(self, qs):
-        return json.dumps(SourceSerializer(qs).data)
+class SourceIndex(BaseIndex, indexes.Indexable):
+    uris = indexes.MultiValueField()
 
     def get_model(self):
         return Source
 
-    def index_queryset(self, using=None):
-        """Used when the entire index for model is updated."""
-        return self.get_model().objects.filter(
-            hubModifiedWhen__lte=datetime.datetime.now()
-        )
 
-
-class StatementIndex(indexes.SearchIndex, indexes.Indexable):
-    text = indexes.CharField(document=True, use_template=True)
-    ipif_repo_id = indexes.CharField()
-
-    hubModifiedWhen = indexes.DateTimeField(model_attr="hubModifiedWhen")
-    pre_serialized = indexes.CharField()
-
-    def prepare_pre_serialized(self, qs):
-        return json.dumps(StatementSerializer(qs).data)
-
-    def prepare_ipif_repo_id(self, qs):
-        return qs.ipif_repo.id
-
+class StatementIndex(BaseIndex, indexes.Indexable):
     def get_model(self):
         return Statement
 
