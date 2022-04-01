@@ -22,5 +22,6 @@ urlpatterns = [
     path("", include("webpage.urls", namespace="webpage")),
     path("infos/", include("infos.urls", namespace="infos")),
     path("ipif/", include("ipif_hub.urls")),
+    path("<path:repo>/ipif/", include("ipif_hub.urls")),
 ]
 handler404 = "webpage.views.handler404"

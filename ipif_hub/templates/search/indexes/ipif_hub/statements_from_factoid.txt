@@ -1,0 +1,25 @@
+{% for statement in object.statement.all %}
+
+{{ statement.pk }}
+{{ statement.statementType_label|default_if_none:"" }}
+{{ statement.statementType_uri|default_if_none:"" }}
+{{ statement.name|default_if_none:"" }}
+{{ statement.role_label|default_if_none:"" }}
+{{ statement.role_uri|default_if_none:"" }}
+{{ statement.date_label|default_if_none:"" }}
+{% for place in statement.places.all %}
+    {{ place.label|default_if_none:"" }}
+    {{ place.uri|default_if_none:"" }}
+{% endfor %}
+{% for person in statement.relatesToPerson.all %}
+    {{ person.label|default_if_none:"" }}
+    {% for uri in person.uris.all %}
+        {{ uri.uri }}
+    {% endfor %}
+{% endfor %}
+{{ statement.memberOf_uri|default_if_none:"" }}
+{{ statement.memberOf_label|default_if_none:"" }}
+{{ statement.statementText|default_if_none:"" }}
+
+
+{% endfor %}

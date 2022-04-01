@@ -81,21 +81,31 @@
     <field name="django_ct" type="string" indexed="true" stored="true" multiValued="false"/>
     <field name="django_id" type="string" indexed="true" stored="true" multiValued="false"/>
     
-    <field name="text" type="text_en" indexed="true" stored="true" multiValued="false" />
+    <field name="local_id" type="text_en" indexed="true" stored="true" multiValued="false" />
     
     <field name="ipif_repo_id" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="ipif_repo_slug" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="ipif_type" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="label" type="text_en" indexed="true" stored="true" multiValued="false" />
     
     <field name="hubModifiedWhen" type="date" indexed="true" stored="true" multiValued="false" />
     
     <field name="pre_serialized" type="text_en" indexed="true" stored="true" multiValued="false" />
     
-    <field name="label" type="text_en" indexed="true" stored="true" multiValued="false" />
+    <field name="text" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="st" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="f" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="p" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="s" type="text_en" indexed="true" stored="true" multiValued="false" />
     
     <field name="uris" type="text_en" indexed="true" stored="true" multiValued="true" />
-    
-    <field name="local_id" type="text_en" indexed="true" stored="true" multiValued="false" />
-    
-    <field name="ipif_type" type="text_en" indexed="true" stored="true" multiValued="false" />
     
     <uniqueKey>id</uniqueKey>
 

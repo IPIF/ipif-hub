@@ -1,0 +1,8 @@
+{% for factoid in object.factoids.all %}
+
+{{ factoid.id }}
+{{ factoid.label }}
+{{ factoid.createdBy }}
+{{ factoid.modifiedBy }}
+
+{% endfor %}

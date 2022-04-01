@@ -11,11 +11,16 @@ class IpifEntityAbstractBase(models.Model):
     # This setting id like this is a HACK (?)
     # Idea being, user provides a local id, which we make global by prefixing the repo id
     # then save this as PK —— see the save() method below
-    id = models.URLField(primary_key=True, default="http://noneset.com", editable=False)
+    id = models.URLField(
+        primary_key=True, default="http://noneset.com", editable=False, db_index=True
+    )
 
     local_id = models.CharField(max_length=50, blank=True)
     ipif_repo = models.ForeignKey(
-        "IpifRepo", verbose_name="IPIF Repository", on_delete=models.CASCADE
+        "IpifRepo",
+        verbose_name="IPIF Repository",
+        on_delete=models.CASCADE,
+        db_index=True,
     )
     label = models.CharField(max_length=300, default="")
 
@@ -79,16 +84,18 @@ class Person(IpifEntityAbstractBase):
 
 class Statement(IpifEntityAbstractBase):
 
-    statementType_uri = models.URLField(blank=True, null=True)
-    statementType_label = models.CharField(max_length=300, blank=True, null=True)
+    statementType_uri = models.URLField(blank=True, null=True, db_index=True)
+    statementType_label = models.CharField(
+        max_length=300, blank=True, null=True, db_index=True
+    )
 
-    name = models.CharField(max_length=300, blank=True, null=True)
+    name = models.CharField(max_length=300, blank=True, null=True, db_index=True)
 
-    role_uri = models.URLField(blank=True, null=True)
-    role_label = models.CharField(max_length=300, blank=True, null=True)
+    role_uri = models.URLField(blank=True, null=True, db_index=True)
+    role_label = models.CharField(max_length=300, blank=True, null=True, db_index=True)
 
-    date_sortdate = models.DateField(blank=True, null=True)
-    date_label = models.CharField(max_length=100, blank=True, null=True)
+    date_sortdate = models.DateField(blank=True, null=True, db_index=True)
+    date_label = models.CharField(max_length=100, blank=True, null=True, db_index=True)
 
     places = models.ManyToManyField("Place", blank=True)
 
@@ -96,10 +103,14 @@ class Statement(IpifEntityAbstractBase):
         "Person", verbose_name="relatedToPerson", blank=True
     )
 
-    memberOf_uri = models.URLField(blank=True, null=True)
-    memberOf_label = models.CharField(max_length=300, blank=True, null=True)
+    memberOf_uri = models.URLField(blank=True, null=True, db_index=True)
+    memberOf_label = models.CharField(
+        max_length=300, blank=True, null=True, db_index=True
+    )
 
-    statementText = models.CharField(max_length=1000, blank=True, null=True)
+    statementText = models.CharField(
+        max_length=1000, blank=True, null=True, db_index=True
+    )
 
 
 class Source(IpifEntityAbstractBase):
@@ -116,8 +127,8 @@ class Source(IpifEntityAbstractBase):
 
 
 class IpifRepo(models.Model):
-    endpoint_slug = models.CharField(max_length=20, primary_key=True)
-    endpoint_url = models.URLField()
+    endpoint_slug = models.CharField(max_length=20, primary_key=True, db_index=True)
+    endpoint_url = models.URLField(db_index=True)
     refresh_frequency = models.CharField(
         max_length=10, choices=(("daily", "daily"), ("weekly", "weekly"))
     )
@@ -126,15 +137,15 @@ class IpifRepo(models.Model):
 
 
 class Place(models.Model):
-    uri = models.URLField(primary_key=True)
-    label = models.CharField(max_length=300, null=True)
+    uri = models.URLField(primary_key=True, db_index=True)
+    label = models.CharField(max_length=300, null=True, db_index=True)
 
     def __str__(self):
         return f"{self.label} ({self.uri})"
 
 
 class URI(models.Model):
-    uri = models.URLField()
+    uri = models.URLField(db_index=True)
 
     def __str__(self):
         return self.uri

@@ -1,0 +1,7 @@
+{{ object.person.id }}
+{{ object.person.label }}
+{% for uri in object.person.uris.all %}
+    {{ uri.uri }}
+{% endfor %}
+{{ object.person.createdBy }}
+{{ object.person.modifiedBy }}

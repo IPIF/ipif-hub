@@ -1,7 +1,6 @@
 import json
 from typing import List
 
-
 from django.db.models import Q
 
 from rest_framework import viewsets
@@ -9,10 +8,8 @@ from rest_framework.response import Response
 
 from haystack.query import SQ, SearchQuerySet
 
-
 import datetime
 from dateutil.parser import parse as parse_date
-
 
 from .models import Factoid, Person, Source, Statement
 from .search_indexes import PersonIndex, FactoidIndex, SourceIndex, StatementIndex
@@ -91,7 +88,7 @@ def list_view(object_class, serializer_class):
     ✅ sourceId
     s"""
 
-    def inner(self, request):
+    def inner(self, request, repo=None):
 
         # Fields are directly on Factoids, unlike other models where we
         # need to access *via* a Factoid
@@ -101,6 +98,9 @@ def list_view(object_class, serializer_class):
             qd = query_dict("factoids__")
 
         q = Q()
+
+        if repo:
+            q &= Q(ipif_repo__endpoint_slug=repo)
 
         if p := request.query_params.get("factoidId"):
             q &= Q(**qd("id", p))
@@ -112,7 +112,6 @@ def list_view(object_class, serializer_class):
             q &= Q(**qd("source__id", p))
 
         queryset = object_class.objects.filter(q)
-        print("QSS", queryset)
 
         statement_filters = build_statement_filters(request)
 
@@ -170,27 +169,24 @@ def retrieve_view(object_class, object_serializer):
         queryset = object_class.objects.filter(q).first()
         serializer = globals()[f"{object_class.__name__}Serializer"]
         return Response(serializer(queryset).data)
-
-    # New version hitting SOLR
     """
+    # New version hitting SOLR
 
-    def inner(self, request, pk):
-        print("getting")
+    def inner(self, request, pk, repo=None):
         index = globals()[f"{object_class.__name__}Index"]
-        print(dir(request))
-
-        sq = SQ(id=f"ipif_hub.{object_class.__name__.lower()}.{pk}") | (
-            SQ(local_id=pk) & SQ(ipif_type=object_class.__name__.lower())
+        sq = (
+            SQ(id=f"ipif_hub.{object_class.__name__.lower()}.{pk}")
+            | SQ(uris=pk)
+            | (SQ(local_id=pk) & SQ(ipif_type=object_class.__name__.lower()))
         )
 
+        if repo:
+            sq &= SQ(ipif_repo_slug=repo)
         result = index.objects.filter(sq)
-        print(result[0])
         try:
             return Response(json.loads(result[0].pre_serialized))
         except IndexError:
             return Response(status=404)
-
-    # """
 
     return inner
 
