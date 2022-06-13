@@ -1,3 +1,4 @@
+from dataclasses import field
 import json
 from typing import List
 
@@ -90,6 +91,14 @@ def list_view(object_class, serializer_class):
 
     def inner(self, request, repo=None):
 
+        if not request.query_params:
+            # If no query params on list view, just get all the objects of a type from
+            # Solr — no need to trawl through all this query stuff below
+            result = SearchQuerySet().filter(ipif_type=object_class.__name__.lower())
+            return Response([json.loads(r.pre_serialized) for r in result])
+
+        # Otherwise, we need to create a query...
+
         # Fields are directly on Factoids, unlike other models where we
         # need to access *via* a Factoid
         if object_class is Factoid:
@@ -102,15 +111,31 @@ def list_view(object_class, serializer_class):
         if repo:
             q &= Q(ipif_repo__endpoint_slug=repo)
 
-        if p := request.query_params.get("factoidId"):
-            q &= Q(**qd("id", p))
+        if param := request.query_params.get("factoidId"):
+            q &= Q(**qd("id", param))
 
-        if p := request.query_params.get("statementId"):
-            q &= Q(**qd("statement__id", p))
+        if param := request.query_params.get("statementId"):
+            q &= Q(**qd("statement__id", param))
 
-        if p := request.query_params.get("sourceId"):
-            q &= Q(**qd("source__id", p))
+        if param := request.query_params.get("sourceId"):
+            q &= Q(**qd("source__id", param))
 
+        # Add fulltext IDs to q by doing all the full-text
+        # stuff in a single Solr lookup...
+
+        ## EVEN BETTER... let's throw this into Solr query at the end...
+        ft_query_dict = {}
+        for p in ["st", "s", "f", "p"]:
+            if param := request.query_params.get(p):
+                ft_query_dict[f"{p}__contains"] = param
+
+        if ft_query_dict:
+            ft_query_dict["ipif_type"] = object_class.__name__.lower()
+            solr_ids = SearchQuerySet().filter(**ft_query_dict)
+            django_ids = [o.pk for o in solr_ids]
+            q &= Q(pk__in=django_ids)
+
+        # Now create queryset with previously defined q object and add statement filters
         queryset = object_class.objects.filter(q)
 
         statement_filters = build_statement_filters(request)

@@ -151,7 +151,7 @@ class SourceSerializer(serializers.ModelSerializer):
 
 class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
     places = PlacesSerializer(many=True)
-    factoids = FactoidSerializer(many=True)
+    factoids = FactoidRefSerializer(many=True)
 
     class Meta:
         model = Statement
