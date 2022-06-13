@@ -78,23 +78,44 @@ def query_dict(path):
     return inner
 
 
-def list_view(object_class, serializer_class):
+def list_view(object_class):
     """
 
-    p
+    size
+    page
+    sortBy
+
+    ✅ p
     ✅ factoidId
-    f
+    ✅ f
     ✅ statementId
-    st
+    ✅ st
     ✅ sourceId
-    s"""
+    ✅ s"""
 
     def inner(self, request, repo=None):
 
-        if not request.query_params:
-            # If no query params on list view, just get all the objects of a type from
+        # Make a copy of this so we can pop off the fulltext fields and
+        # check whether there are any fields afterwards
+        request_params = request.query_params.copy()
+
+        # Get the size and page params
+        size = request_params.pop("size", 30)
+        page = request_params.pop("page", 1)
+
+        # Build lookup dict for fulltext search parameters
+        fulltext_lookup_dict = {"ipif_type": object_class.__name__.lower()}
+        for p in ["st", "s", "f", "p"]:
+            if param := request_params.pop(p, None):
+                fulltext_lookup_dict[f"{p}__contains"] = param[0]
+                # For some reason ^^^^ param here is a list, this is a list...
+
+        if not request_params:
+            # If no query params apart from fulltext params (popped off above)
+            # on list view, just get all the objects of a type from
             # Solr — no need to trawl through all this query stuff below
-            result = SearchQuerySet().filter(ipif_type=object_class.__name__.lower())
+            result = SearchQuerySet().filter(**fulltext_lookup_dict)
+
             return Response([json.loads(r.pre_serialized) for r in result])
 
         # Otherwise, we need to create a query...
@@ -119,21 +140,6 @@ def list_view(object_class, serializer_class):
 
         if param := request.query_params.get("sourceId"):
             q &= Q(**qd("source__id", param))
-
-        # Add fulltext IDs to q by doing all the full-text
-        # stuff in a single Solr lookup...
-
-        ## EVEN BETTER... let's throw this into Solr query at the end...
-        ft_query_dict = {}
-        for p in ["st", "s", "f", "p"]:
-            if param := request.query_params.get(p):
-                ft_query_dict[f"{p}__contains"] = param
-
-        if ft_query_dict:
-            ft_query_dict["ipif_type"] = object_class.__name__.lower()
-            solr_ids = SearchQuerySet().filter(**ft_query_dict)
-            django_ids = [o.pk for o in solr_ids]
-            q &= Q(pk__in=django_ids)
 
         # Now create queryset with previously defined q object and add statement filters
         queryset = object_class.objects.filter(q)
@@ -175,15 +181,15 @@ def list_view(object_class, serializer_class):
             # ...and then apply it as a filter on the queryset
             queryset = queryset.filter(**qd("statement__in", statements))
 
-        # DIRTY TEMP HACK —— get the resulting serializations from Solr
+        # Get serialized results from Solr, adding in any fulltext lookups
         solr_pks = [r.pk for r in queryset.distinct()]
-        result = SearchQuerySet().filter(django_id__in=solr_pks)
+        result = SearchQuerySet().filter(**fulltext_lookup_dict, django_id__in=solr_pks)
         return Response([json.loads(r.pre_serialized) for r in result])
 
     return inner
 
 
-def retrieve_view(object_class, object_serializer):
+def retrieve_view(object_class):
 
     # OLD VERSION HITTING DB
     """
@@ -218,13 +224,13 @@ def retrieve_view(object_class, object_serializer):
 
 def build_viewset(object_class) -> viewsets.ViewSet:
     viewset = f"{object_class.__name__}ViewSet"
-    serializer = globals()[f"{object_class.__name__}Serializer"]
+    # serializer = globals()[f"{object_class.__name__}Serializer"]
     return type(
         viewset,
         (viewsets.ViewSet,),
         {
-            "list": list_view(object_class, serializer),
-            "retrieve": retrieve_view(object_class, serializer),
+            "list": list_view(object_class),
+            "retrieve": retrieve_view(object_class),
         },
     )
 
