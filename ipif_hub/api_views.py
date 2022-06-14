@@ -1,4 +1,5 @@
 from dataclasses import field
+from itertools import islice
 import json
 from typing import List
 
@@ -8,6 +9,7 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 
 from haystack.query import SQ, SearchQuerySet
+from haystack.inputs import Raw
 
 import datetime
 from dateutil.parser import parse as parse_date
@@ -81,8 +83,8 @@ def query_dict(path):
 def list_view(object_class):
     """
 
-    size
-    page
+    ✅ size
+    ✅ page
     sortBy
 
     ✅ p
@@ -99,9 +101,15 @@ def list_view(object_class):
         # check whether there are any fields afterwards
         request_params = request.query_params.copy()
 
-        # Get the size and page params
-        size = request_params.pop("size", 30)
-        page = request_params.pop("page", 1)
+        # Get the size and page params, to pass to islice (hopefully this works?)
+        size = 30
+        if s := request_params.pop("size", None):
+            size = int(s[0])
+        page_start = 0
+
+        if p := request_params.pop("page", None):
+            page_start = (int(p[0]) - 1) * size
+        page_end = page_start + size
 
         # Build lookup dict for fulltext search parameters
         fulltext_lookup_dict = {"ipif_type": object_class.__name__.lower()}
@@ -114,7 +122,9 @@ def list_view(object_class):
             # If no query params apart from fulltext params (popped off above)
             # on list view, just get all the objects of a type from
             # Solr — no need to trawl through all this query stuff below
-            result = SearchQuerySet().filter(**fulltext_lookup_dict)
+            result = islice(
+                SearchQuerySet().filter(**fulltext_lookup_dict), page_start, page_end
+            )
 
             return Response([json.loads(r.pre_serialized) for r in result])
 
@@ -183,7 +193,12 @@ def list_view(object_class):
 
         # Get serialized results from Solr, adding in any fulltext lookups
         solr_pks = [r.pk for r in queryset.distinct()]
-        result = SearchQuerySet().filter(**fulltext_lookup_dict, django_id__in=solr_pks)
+        result = islice(
+            SearchQuerySet().filter(**fulltext_lookup_dict, django_id__in=solr_pks),
+            page_start,
+            page_end,
+        )
+
         return Response([json.loads(r.pre_serialized) for r in result])
 
     return inner
@@ -222,6 +237,15 @@ def retrieve_view(object_class):
     return inner
 
 
+from rest_framework.pagination import PageNumberPagination
+
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 1
+    page_size_query_param = "page_size"
+    max_page_size = 1000
+
+
 def build_viewset(object_class) -> viewsets.ViewSet:
     viewset = f"{object_class.__name__}ViewSet"
     # serializer = globals()[f"{object_class.__name__}Serializer"]
@@ -229,6 +253,7 @@ def build_viewset(object_class) -> viewsets.ViewSet:
         viewset,
         (viewsets.ViewSet,),
         {
+            "pagination_class": StandardResultsSetPagination,
             "list": list_view(object_class),
             "retrieve": retrieve_view(object_class),
         },
