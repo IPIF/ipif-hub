@@ -111,6 +111,24 @@ def list_view(object_class):
             page_start = (int(p[0]) - 1) * size
         page_end = page_start + size
 
+        sortBy = None
+        sort_order = ""
+        if s := request_params.pop("sortBy", None):
+            sortBy = s[0]
+
+        if sortBy.endswith("ASC"):
+            sortBy = sortBy.replace("ASC", "").strip()
+
+        if sortBy.endswith("DESC"):
+            sortBy = sortBy.replace("DESC", "").strip()
+            sort_order = "-"
+
+        if sortBy in {"p", "s", "st", "s"}:
+            # These fields already exist in index so we don't need the 'sort_' prefix
+            sort_string = f"{sort_order}{sortBy}"
+        else:
+            sort_string = f"{sort_order}sort_{sortBy}"
+
         # Build lookup dict for fulltext search parameters
         fulltext_lookup_dict = {"ipif_type": object_class.__name__.lower()}
         for p in ["st", "s", "f", "p"]:
@@ -122,9 +140,11 @@ def list_view(object_class):
             # If no query params apart from fulltext params (popped off above)
             # on list view, just get all the objects of a type from
             # Solr — no need to trawl through all this query stuff below
-            result = islice(
-                SearchQuerySet().filter(**fulltext_lookup_dict), page_start, page_end
-            )
+            search_queryset = SearchQuerySet().filter(**fulltext_lookup_dict)
+
+            if sortBy:
+                search_queryset = search_queryset.order_by(sort_string)
+            result = islice(search_queryset, page_start, page_end)
 
             return Response([json.loads(r.pre_serialized) for r in result])
 
@@ -193,8 +213,16 @@ def list_view(object_class):
 
         # Get serialized results from Solr, adding in any fulltext lookups
         solr_pks = [r.pk for r in queryset.distinct()]
+
+        search_queryset = SearchQuerySet().filter(
+            **fulltext_lookup_dict, django_id__in=solr_pks
+        )
+
+        if sortBy:
+            search_queryset = search_queryset.order_by(sort_string)
+
         result = islice(
-            SearchQuerySet().filter(**fulltext_lookup_dict, django_id__in=solr_pks),
+            search_queryset,
             page_start,
             page_end,
         )

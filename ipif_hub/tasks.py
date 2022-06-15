@@ -53,6 +53,7 @@ def update_source_index(instance_pk):
 
 @shared_task
 def update_statement_index(instance_pk):
+    logger.log("updated statement")
     statement = Statement.objects.get(pk=instance_pk)
 
     for factoid in statement.factoids.all():

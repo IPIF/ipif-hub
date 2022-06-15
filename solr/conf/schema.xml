@@ -95,6 +95,38 @@
     
     <field name="pre_serialized" type="text_en" indexed="true" stored="true" multiValued="false" />
     
+    <field name="sort_createdBy" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="sort_createdWhen" type="date" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="sort_modifiedBy" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="sort_modifiedWhen" type="date" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="sort_personId" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="sort_statementId" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="sort_sourceId" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="sort_factoidId" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="sort_statementText" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="sort_relatesToPerson" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="sort_memberOf" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="sort_role" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="sort_name" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="sort_from" type="date" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="sort_to" type="date" indexed="true" stored="true" multiValued="false" />
+    
+    <field name="sort_place" type="text_en" indexed="true" stored="true" multiValued="false" />
+    
     <field name="text" type="text_en" indexed="true" stored="true" multiValued="false" />
     
     <field name="st" type="text_en" indexed="true" stored="true" multiValued="false" />
