@@ -62,9 +62,9 @@ class BaseIndex(indexes.SearchIndex):
     pre_serialized = indexes.CharField()
 
     sort_createdBy = indexes.CharField(model_attr="createdBy")
-    sort_createdWhen = indexes.DateTimeField(model_attr="createdWhen")
+    sort_createdWhen = indexes.DateField(model_attr="createdWhen")
     sort_modifiedBy = indexes.CharField(model_attr="modifiedBy")
-    sort_modifiedWhen = indexes.DateTimeField(model_attr="modifiedWhen")
+    sort_modifiedWhen = indexes.DateField(model_attr="modifiedWhen")
     sort_personId = indexes.CharField()
     sort_statementId = indexes.CharField()
     sort_sourceId = indexes.CharField()
@@ -82,7 +82,7 @@ class BaseIndex(indexes.SearchIndex):
     text = indexes.CharField(document=True, use_template=True)
 
     def prepare_ipif_repo_id(self, inst):
-        return inst.ipif_repo.endpoint_url
+        return inst.ipif_repo.endpoint_uri
 
     def prepare_ipif_repo_slug(self, inst):
         return inst.ipif_repo.endpoint_slug

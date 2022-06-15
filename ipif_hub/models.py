@@ -32,12 +32,14 @@ class IpifEntityAbstractBase(models.Model):
     hubIngestedWhen = models.DateTimeField(auto_now_add=True)
     hubModifiedWhen = models.DateTimeField(auto_now=True)
 
+    inputContentHash = models.CharField(max_length=30, default="")
+
     def build_uri_id_from_slug(self, id):
         """Returns the full IPIF-compliant URL version of the entity"""
         url = (
-            self.ipif_repo.endpoint_url[:-1]
-            if self.ipif_repo.endpoint_url.endswith("/")
-            else self.ipif_repo.endpoint_url
+            self.ipif_repo.endpoint_uri[:-1]
+            if self.ipif_repo.endpoint_uri.endswith("/")
+            else self.ipif_repo.endpoint_uri
         )
         entity_type = f"{type(self).__name__.lower()}s"
         return f"{url}/{entity_type}/{id}"
@@ -127,8 +129,9 @@ class Source(IpifEntityAbstractBase):
 
 
 class IpifRepo(models.Model):
+    endpoint_name = models.CharField(max_length=30, default="")
     endpoint_slug = models.CharField(max_length=20, primary_key=True, db_index=True)
-    endpoint_url = models.URLField(db_index=True)
+    endpoint_uri = models.URLField(db_index=True)
     refresh_frequency = models.CharField(
         max_length=10, choices=(("daily", "daily"), ("weekly", "weekly"))
     )
