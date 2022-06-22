@@ -2,6 +2,9 @@ from django.db import models
 from django.core.validators import URLValidator
 from django.forms import ValidationError
 
+s
+from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
+
 
 class IpifEntityAbstractBase(models.Model):
     class Meta:
