@@ -20,9 +20,7 @@ def update_factoid_index(instance_pk):
         factoid_search.searchindex.update_object(Factoid.objects.get(pk=instance_pk))
 
     person = Factoid.objects.get(pk=instance_pk).person
-    person_searches = PersonIndex.objects.filter(django_id=person.pk).exclude(
-        ipif_repo__endpoint_slug="IPIFHUB_AUTOCREATED"
-    )
+    person_searches = PersonIndex.objects.filter(django_id=person.pk)
     for person_search in person_searches:
         person_search.searchindex.update_object(person)
 

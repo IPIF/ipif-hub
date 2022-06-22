@@ -26,10 +26,8 @@ def index_factoid(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Person)
 def index_person(sender, instance, **kwargs):
-    if instance.ipif_repo.endpoint_slug != "IPIFHUB_AUTOCREATED":
-        update_person_index.delay(instance.pk)
-    else:
-        print("autocreated... skipping")
+
+    update_person_index.delay(instance.pk)
 
 
 @receiver(post_save, sender=Source)

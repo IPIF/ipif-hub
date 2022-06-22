@@ -45,7 +45,9 @@ class IpifEntityAbstractBase(models.Model):
         return f"{url}/{entity_type}/{id}"
 
     def save(self, *args, **kwargs):
-        if not self.id:
+        if not self.id or self.id == "http://noneset.com":
+            print("no id set... generating", self)
+            print(self.build_uri_id_from_slug(self.local_id))
             self.id = self.build_uri_id_from_slug(self.local_id)
         super().save(*args, **kwargs)
 

@@ -10,12 +10,17 @@ from ipif_hub.models import (
     Person,
     Source,
     Statement,
+    Factoid,
     Place,
     ipif_hub_repo_AUTOCREATED,
 )
 
 
 class DataFormatError(Exception):
+    pass
+
+
+class DataIntegrityError(Exception):
     pass
 
 
@@ -58,6 +63,22 @@ ALLOWED_STATEMENT_FIELDS = {
     "relatesToPerson",
     "memberOf",
     "statementText",
+}
+
+REQUIRED_FACTOID_FIELDS = {
+    "@id",
+    "createdBy",
+    "createdWhen",
+    "modifiedBy",
+    "modifiedWhen",
+    "person-ref",
+    "source-ref",
+    "statement-refs",
+}
+
+ALLOWED_FACTOID_FIELDS = {
+    *REQUIRED_FACTOID_FIELDS,
+    "label",
 }
 
 
@@ -288,13 +309,13 @@ def ingest_person_or_source(entity_class, data, ipif_repo):
         ipif_repo.endpoint_uri, entity_class.__name__, data["local_id"]
     )
     uris_to_set = data.pop("uris", [])
+    input_content_hash = hash_content(data)
 
     try:  # Entity exists
         entity = entity_class.objects.get(pk=qid)
 
         # If already exists, check whether it's been modified by comparing hashes;
         # if not modified, just return
-        input_content_hash = hash_content(data)
 
         if entity.inputContentHash == input_content_hash:
             print(
@@ -347,6 +368,139 @@ def ingest_person_or_source(entity_class, data, ipif_repo):
             raise DataFormatError(f"IPIF JSON 'person' error: {e}")
 
 
+def ingest_factoid(data, ipif_repo):
+    provided_keys = set(data.keys())
+    # Check data fields present and raise error if missing
+    missing_fields = REQUIRED_FACTOID_FIELDS - provided_keys
+    if missing_fields:
+        raise DataFormatError(
+            f"IPIF JSON 'factoid' fields missing: {', '.join(missing_fields)}"
+        )
+    invalid_fields = provided_keys - ALLOWED_FACTOID_FIELDS
+    if invalid_fields:
+        raise DataFormatError(
+            f"IPIF JSON 'factoid' has invalid fields: {', '.join(invalid_fields)}"
+        )
+    data["local_id"] = data.pop("@id")
+
+    qid = build_qualified_id(ipif_repo.endpoint_uri, "Factoid", data["local_id"])
+    input_content_hash = hash_content(data)
+    try:  # factoid does exist
+        factoid = Factoid.objects.get(pk=qid)
+        factoid.local_id = data["local_id"]
+        factoid.createdBy = data["createdBy"]
+        factoid.createdWhen = data["createdWhen"]
+        factoid.modifiedBy = data["modifiedBy"]
+        factoid.modifiedWhen = data["modifiedWhen"]
+        factoid.label = data.get("label", "")
+        factoid.inputContentHash = input_content_hash
+        # factoid.ipif_repo = ipif_repo
+
+        try:
+            factoid.person = Person.objects.get(
+                pk=build_qualified_id(
+                    ipif_repo.endpoint_uri, "Person", data["person-ref"]["@id"]
+                )
+            )
+        except Person.DoesNotExist:
+            raise DataIntegrityError(
+                f"IPIF JSON Error: Factoid: {data['local_id']} references non-existant Person @id='{data['person-ref']['@id']}'"
+            )
+
+        try:
+            factoid.source = Source.objects.get(
+                pk=build_qualified_id(
+                    ipif_repo.endpoint_uri, "Source", data["source-ref"]["@id"]
+                )
+            )
+        except Source.DoesNotExist:
+            raise DataIntegrityError(
+                f"IPIF JSON Error: Factoid: {data['local_id']} references non-existant Source @id='{data['source-ref']['@id']}'"
+            )
+
+        current_statements_as_uris = {
+            statement.id for statement in factoid.statement.all()
+        }
+        for statement in data["statement-refs"]:
+            try:
+                pk = build_qualified_id(
+                    ipif_repo.endpoint_uri, "Statement", statement["@id"]
+                )
+                if pk not in current_statements_as_uris:
+                    s = Statement.objects.get(pk=pk)
+                    factoid.statement.add(s)
+                    factoid.save()
+            except Statement.DoesNotExist:
+                raise DataIntegrityError(
+                    f"IPIF JSON Error: Factoid: {data['local_id']} references non-existant Statement @id='{statement['@id']}'"
+                )
+            except Exception as e:
+                print(e)
+        factoid.save()
+
+        statements_to_add = {
+            build_qualified_id(ipif_repo.endpoint_uri, "Statement", s["@id"])
+            for s in data["statement-refs"]
+        }
+        current_statements = {statement for statement in factoid.statement.all()}
+
+        for current_statement in current_statements:
+            print(current_statement.id, statements_to_add)
+            if current_statement.id not in statements_to_add:
+                factoid.statement.remove(current_statement)
+
+        factoid.save()
+
+    except Factoid.DoesNotExist:  # Create new factoid
+        factoid = Factoid()
+        factoid.local_id = data["local_id"]
+        factoid.createdBy = data["createdBy"]
+        factoid.createdWhen = data["createdWhen"]
+        factoid.modifiedBy = data["modifiedBy"]
+        factoid.modifiedWhen = data["modifiedWhen"]
+        factoid.label = data.get("label", "")
+        factoid.inputContentHash = input_content_hash
+        factoid.ipif_repo = ipif_repo
+
+        try:
+            factoid.person = Person.objects.get(
+                pk=build_qualified_id(
+                    ipif_repo.endpoint_uri, "Person", data["person-ref"]["@id"]
+                )
+            )
+        except Person.DoesNotExist:
+            raise DataIntegrityError(
+                f"IPIF JSON Error: Factoid: {data['local_id']} references non-existant Person @id='{data['person-ref']['@id']}'"
+            )
+
+        try:
+            factoid.source = Source.objects.get(
+                pk=build_qualified_id(
+                    ipif_repo.endpoint_uri, "Source", data["source-ref"]["@id"]
+                )
+            )
+        except Source.DoesNotExist:
+            raise DataIntegrityError(
+                f"IPIF JSON Error: Factoid: {data['local_id']} references non-existant Source @id='{data['source-ref']['@id']}'"
+            )
+        factoid.save()
+        for statement in data["statement-refs"]:
+            try:
+                pk = build_qualified_id(
+                    ipif_repo.endpoint_uri, "Statement", statement["@id"]
+                )
+                print(pk)
+                s = Statement.objects.get(pk=pk)
+                print(s)
+                factoid.statement.add(s)
+            except Statement.DoesNotExist:
+                raise DataIntegrityError(
+                    f"IPIF JSON Error: Factoid: {data['local_id']} references non-existant Statement @id='{statement['@id']}'"
+                )
+
+        factoid.save()
+
+
 def ingest_persons(persons_data, ipif_repo):
     # print(persons_data)
     for person in persons_data:
@@ -361,6 +515,11 @@ def ingest_sources(sources_data, ipif_repo):
 def ingest_statements(statements_data, ipif_repo):
     for statement in statements_data:
         ingest_statement(statement, ipif_repo)
+
+
+def ingest_factoids(factoids_data, ipif_repo):
+    for factoid in factoids_data:
+        ingest_factoid(factoid, ipif_repo)
 
 
 @transaction.atomic
@@ -387,5 +546,9 @@ def ingest_data(data):
     try:
         ingest_statements(data["statements"], ipif_repo)
     except KeyError as e:
-        # raise DataFormatError("IPIF JSON is missing 'statements' field")
-        print(e.__traceback__.tb_next.tb_next.tb_frame)
+        raise DataFormatError("IPIF JSON is missing 'statements' field")
+
+    try:
+        ingest_factoids(data["factoids"], ipif_repo)
+    except KeyError as e:
+        raise DataFormatError("IPIF JSON is missing 'statements' field")

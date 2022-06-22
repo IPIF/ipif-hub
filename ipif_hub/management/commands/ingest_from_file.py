@@ -1,7 +1,11 @@
 import json
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 
-from ipif_hub.management.utils.ingest_data import ingest_data, DataFormatError
+from ipif_hub.management.utils.ingest_data import (
+    ingest_data,
+    DataFormatError,
+    DataIntegrityError,
+)
 
 
 class Command(BaseCommand):
@@ -23,3 +27,5 @@ class Command(BaseCommand):
             ingest_data(data)
         except DataFormatError as e:
             raise CommandError(f"DataFormatError: {e.args[0]}")
+        except DataIntegrityError as e:
+            raise CommandError(f"DataIntegrity Error: {e.args[0]}")

@@ -136,10 +136,17 @@ class BaseIndex(indexes.SearchIndex):
             return inst.statementText[:20] if inst.statementText else SORT_LAST
         if self.get_model().__name__ == "Factoid":
             if statement := inst.statement.exclude(statementText="").first():
-                return statement.statementText[:20]
+                try:
+                    return statement.statementText[:20]
+                except:
+                    return SORT_LAST
+            return SORT_LAST
         if factoid := inst.factoids.exclude(statement__statementText="").first():
             if statement := factoid.statement.exclude(statementText="").first():
-                return statement.statementText[:20]
+                try:
+                    return statement.statementText[:20]
+                except:
+                    return SORT_LAST
         return SORT_LAST
 
     def prepare_sort_relatesToPerson(self, inst):
