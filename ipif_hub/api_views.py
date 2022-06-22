@@ -111,9 +111,9 @@ def list_view(object_class):
             page_start = (int(p[0]) - 1) * size
         page_end = page_start + size
 
-        sortBy = None
+        sortBy = ""
         sort_order = ""
-        if s := request_params.pop("sortBy", None):
+        if s := request_params.pop("sortBy", ""):
             sortBy = s[0]
 
         if sortBy.endswith("ASC"):
@@ -140,7 +140,11 @@ def list_view(object_class):
             # If no query params apart from fulltext params (popped off above)
             # on list view, just get all the objects of a type from
             # Solr — no need to trawl through all this query stuff below
-            search_queryset = SearchQuerySet().filter(**fulltext_lookup_dict)
+            search_queryset = (
+                SearchQuerySet()
+                .exclude(ipif_repo_slug="IPIFHUB_AUTOCREATED")
+                .filter(**fulltext_lookup_dict)
+            )
 
             if sortBy:
                 search_queryset = search_queryset.order_by(sort_string)
@@ -214,8 +218,10 @@ def list_view(object_class):
         # Get serialized results from Solr, adding in any fulltext lookups
         solr_pks = [r.pk for r in queryset.distinct()]
 
-        search_queryset = SearchQuerySet().filter(
-            **fulltext_lookup_dict, django_id__in=solr_pks
+        search_queryset = (
+            SearchQuerySet()
+            .exclude(ipif_repo_slug="IPIFHUB_AUTOCREATED")
+            .filter(**fulltext_lookup_dict, django_id__in=solr_pks)
         )
 
         if sortBy:

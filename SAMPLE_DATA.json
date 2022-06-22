@@ -33,7 +33,7 @@
             "uris": ["http://books.net/s1", "http://whsmith.com/sno"],
             "createdBy": "Researcher1",
             "createdWhen": "2012-04-23",
-            "modifiedBy": "Researcher3",
+            "modifiedBy": "Researcher6",
             "modifiedWhen": "2012-04-23"
         }
 
@@ -51,10 +51,11 @@
                 "label": "Has Name"
             },
             "name": "John Smith"
+
         },
         {
             "@id": "St2-jsmith-teacher",
-            "places": [],
+            "places": [{ "uri": "http://places.com/Germany", "label": "Germany" }],
             "createdBy": "RHadden",
             "createdWhen": "2022-03-25",
             "modifiedBy": "RHadden",
@@ -62,8 +63,10 @@
             "label": "",
 
             "role": {
-                "label": "teacher"
-            }
+                "label": "teachery",
+                "uri": "http://jobs.com/teacher"
+            },
+            "relatesToPerson": [{ "uri": "http://persons.com/mrsSpenceley", "label": "Mrs Spenceley" }]
         }
     ]
 }

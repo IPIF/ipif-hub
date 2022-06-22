@@ -22,7 +22,7 @@ class IpifEntityAbstractBase(models.Model):
         on_delete=models.CASCADE,
         db_index=True,
     )
-    label = models.CharField(max_length=300, default="")
+    label = models.CharField(max_length=300, default="", blank=True)
 
     createdBy = models.CharField(max_length=300)
     createdWhen = models.DateField()
@@ -32,7 +32,7 @@ class IpifEntityAbstractBase(models.Model):
     hubIngestedWhen = models.DateTimeField(auto_now_add=True)
     hubModifiedWhen = models.DateTimeField(auto_now=True)
 
-    inputContentHash = models.CharField(max_length=30, default="")
+    inputContentHash = models.CharField(max_length=60, default="")
 
     def build_uri_id_from_slug(self, id):
         """Returns the full IPIF-compliant URL version of the entity"""
@@ -45,7 +45,8 @@ class IpifEntityAbstractBase(models.Model):
         return f"{url}/{entity_type}/{id}"
 
     def save(self, *args, **kwargs):
-        self.id = self.build_uri_id_from_slug(self.local_id)
+        if not self.id:
+            self.id = self.build_uri_id_from_slug(self.local_id)
         super().save(*args, **kwargs)
 
 
@@ -133,7 +134,8 @@ class IpifRepo(models.Model):
     endpoint_slug = models.CharField(max_length=20, primary_key=True, db_index=True)
     endpoint_uri = models.URLField(db_index=True)
     refresh_frequency = models.CharField(
-        max_length=10, choices=(("daily", "daily"), ("weekly", "weekly"))
+        max_length=10,
+        choices=(("daily", "daily"), ("weekly", "weekly"), ("never", "never")),
     )
     refresh_time = models.TimeField()
     endpoint_is_ipif = models.BooleanField()
@@ -152,3 +154,19 @@ class URI(models.Model):
 
     def __str__(self):
         return self.uri
+
+
+try:
+    ipif_hub_repo_AUTOCREATED = IpifRepo.objects.get(
+        endpoint_slug="IPIFHUB_AUTOCREATED"
+    )
+except IpifRepo.DoesNotExist:
+    ipif_hub_repo_AUTOCREATED = IpifRepo(
+        endpoint_name="IPIFHUB_AUTOCREATED",
+        endpoint_slug="IPIFHUB_AUTOCREATED",
+        endpoint_uri="http://IPIFHUB_AUTOCREATED",
+        refresh_frequency="never",
+        refresh_time="00:00",
+        endpoint_is_ipif=False,
+    )
+    ipif_hub_repo_AUTOCREATED.save()

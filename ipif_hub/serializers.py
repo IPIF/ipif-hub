@@ -24,7 +24,7 @@ class PlacesSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        return {"@id": data["uri"], "label": data["label"], "uri": data["uri"]}
+        return {"label": data["label"], "uri": data["uri"]}
 
 
 class PersonRefSerializer(GenericRefSerializer, serializers.ModelSerializer):
@@ -154,8 +154,11 @@ class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
     factoids = FactoidRefSerializer(many=True)
 
     class Meta:
+        depth = 2
         model = Statement
         exclude = [
+            "local_id",
+            "inputContentHash",
             "ipif_repo",
             "hubIngestedWhen",
             "hubModifiedWhen",
@@ -168,14 +171,18 @@ class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
         made into nested dicts
         """
         data = super().to_representation(instance)
+        print(data)
         return_dict = {}
         for k, v in data.items():
+
             if "_" in k:
                 field, subfield = k.split("_")
                 if field in return_dict:
                     return_dict[field][subfield] = v
                 else:
                     return_dict[field] = {subfield: v}
+            elif k == "relatesToPerson":
+                return_dict[k] = [{"uri": p["id"], "label": p["label"]} for p in v]
             else:
                 return_dict[k] = v
         return_dict["factoid-refs"] = return_dict.pop("factoids")

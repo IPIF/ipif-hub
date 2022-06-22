@@ -20,20 +20,23 @@ from ipif_hub.tasks import (
 
 
 @receiver(post_save, sender=Factoid)
-def pre_serialize_factoid(sender, instance, **kwargs):
+def index_factoid(sender, instance, **kwargs):
     update_factoid_index.delay(instance.pk)
 
 
 @receiver(post_save, sender=Person)
-def pre_serialize_person(sender, instance, **kwargs):
-    update_person_index.delay(instance.pk)
+def index_person(sender, instance, **kwargs):
+    if instance.ipif_repo.endpoint_slug != "IPIFHUB_AUTOCREATED":
+        update_person_index.delay(instance.pk)
+    else:
+        print("autocreated... skipping")
 
 
 @receiver(post_save, sender=Source)
-def pre_serialize_source(sender, instance, **kwargs):
+def index_source(sender, instance, **kwargs):
     update_source_index.delay(instance.pk)
 
 
 @receiver(post_save, sender=Statement)
-def pre_serialize_statement(sender, instance, **kwargs):
+def index_statement(sender, instance, **kwargs):
     update_statement_index.delay(instance.pk)

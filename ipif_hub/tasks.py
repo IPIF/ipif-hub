@@ -1,4 +1,5 @@
 from celery import shared_task
+from celery.contrib import rdb
 from ipif_hub.search_indexes import (
     FactoidIndex,
     PersonIndex,
@@ -19,7 +20,9 @@ def update_factoid_index(instance_pk):
         factoid_search.searchindex.update_object(Factoid.objects.get(pk=instance_pk))
 
     person = Factoid.objects.get(pk=instance_pk).person
-    person_searches = PersonIndex.objects.filter(django_id=person.pk)
+    person_searches = PersonIndex.objects.filter(django_id=person.pk).exclude(
+        ipif_repo__endpoint_slug="IPIFHUB_AUTOCREATED"
+    )
     for person_search in person_searches:
         person_search.searchindex.update_object(person)
 

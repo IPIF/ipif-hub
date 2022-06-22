@@ -251,8 +251,10 @@ class BaseIndex(indexes.SearchIndex):
         # automatically by saving the model, so nothing can change without being reindexed...
         # in which case, whole thing is slightly redundant???)
         """Used when the entire index for model is updated."""
-        return self.get_model().objects.filter(
-            hubModifiedWhen__lte=datetime.datetime.now()
+        return (
+            self.get_model()
+            .objects.filter(hubModifiedWhen__lte=datetime.datetime.now())
+            .exclude(ipif_repo__pk="IPIFHUB_AUTOCREATED")
         )
 
 
