@@ -12,8 +12,11 @@ from ipif_hub.models import (
     Statement,
     Factoid,
     Place,
-    ipif_hub_repo_AUTOCREATED,
+    get_ipif_hub_repo_AUTOCREATED_instance,
 )
+
+
+ipif_hub_repo_AUTOCREATED = get_ipif_hub_repo_AUTOCREATED_instance()
 
 
 class DataFormatError(Exception):
@@ -145,6 +148,9 @@ def ingest_statement(data, ipif_repo):
         if statement.inputContentHash == input_content_hash:
             print(f'No change to <Statement @id="{qid}">; skipping ingest.')
             return
+        else:
+            print(f"Ingesting <Statement @id={qid}>")
+
         try:  # Now update the object
             statement.local_id = data["local_id"]
             statement.createdBy = data["createdBy"]
@@ -193,9 +199,9 @@ def ingest_statement(data, ipif_repo):
                         person = Person.objects.get(
                             id=person_to_set["uri"]
                         )  ### MODIFY TO LOOK FOR URIS WELL...
-                        print("person found", person)
+
                     except Person.DoesNotExist:
-                        print("person not found")
+
                         person = Person(
                             id=person_to_set["uri"],
                             label=person_to_set["label"],
@@ -208,7 +214,7 @@ def ingest_statement(data, ipif_repo):
                             ipif_repo=ipif_hub_repo_AUTOCREATED,
                         )
                         person.save()
-                    print("adding person", person)
+
                     statement.relatesToPerson.add(person)
             statement.save()
 
@@ -226,6 +232,7 @@ def ingest_statement(data, ipif_repo):
         #    raise DataFormatError(f"ERROR: {e}")
 
     except Statement.DoesNotExist:  # If does not exist
+        print(f"Creating <Statement @id={qid}>")
         try:
             statement = Statement()
             statement.local_id = data["local_id"]
@@ -260,9 +267,9 @@ def ingest_statement(data, ipif_repo):
 
             current_places_as_uris = {place.uri for place in statement.places.all()}
             for place_to_set in places_to_set:
-                if place_to_set.uri not in current_places_as_uris:
+                if place_to_set["uri"] not in current_places_as_uris:
                     try:
-                        place = Place.objects.get(uri=place_to_set.uri)
+                        place = Place.objects.get(uri=place_to_set["uri"])
                     except Place.DoesNotExist:
                         place = Place(**place_to_set)
                         place.save()
@@ -271,17 +278,17 @@ def ingest_statement(data, ipif_repo):
             for person_to_set in relatesToPerson_to_set:
                 try:
                     person = Person.objects.get(
-                        pk=person_to_set.uri
+                        pk=person_to_set["uri"]
                     )  ### MODIFY TO LOOK FOR URIS WELL...
                 except Person.DoesNotExist:
                     person = Person(
-                        id=person_to_set.uri,
-                        label=person_to_set.label,
-                        local_id=person_to_set.uri.split("/")[-1],
+                        id=person_to_set["uri"],
+                        label=person_to_set["label"],
+                        local_id=person_to_set["uri"].split("/")[-1],
                         modifiedBy="IPIFHUB_AUTOCREATED",
-                        modifiedWhen=datetime.datetime.now(),
+                        modifiedWhen=datetime.date.today(),
                         createdBy="IPIFHUB_AUTOCREATED",
-                        createdWhen=datetime.datetime.now(),
+                        createdWhen=datetime.date.today(),
                         inputContentHash=hash_content(person_to_set),
                         ipif_repo=ipif_hub_repo_AUTOCREATED,
                     )
@@ -292,8 +299,6 @@ def ingest_statement(data, ipif_repo):
             statement.save()
         except ValidationError as e:
             raise DataFormatError(f"IPIF JSON 'meta' error: {e}")
-        except Exception as e:
-            raise DataFormatError(f"ERROR: {e}")
 
 
 def ingest_person_or_source(entity_class, data, ipif_repo):
@@ -322,6 +327,8 @@ def ingest_person_or_source(entity_class, data, ipif_repo):
                 f'No change to <{entity_class.__name__} @id="{qid}">; skipping ingest.'
             )
             return
+        else:
+            print(f"Ingesting <{entity_class.__name__} @id={qid}>")
 
         try:
             entity.createdBy = data["createdBy"]
@@ -348,6 +355,7 @@ def ingest_person_or_source(entity_class, data, ipif_repo):
             raise DataFormatError(f"IPIF JSON 'person' error: {e}")
 
     except entity_class.DoesNotExist:
+        print(f"Creating <{entity_class.__name__} @id={qid}>")
         try:
             data["inputContentHash"] = input_content_hash
             entity = entity_class(**data)
@@ -387,6 +395,13 @@ def ingest_factoid(data, ipif_repo):
     input_content_hash = hash_content(data)
     try:  # factoid does exist
         factoid = Factoid.objects.get(pk=qid)
+
+        if factoid.inputContentHash == input_content_hash:
+            print(f'No change to <Factoid @id="{qid}">; skipping.')
+            return
+        else:
+            print(f"Updating <Factoid @id={qid}>")
+
         factoid.local_id = data["local_id"]
         factoid.createdBy = data["createdBy"]
         factoid.createdWhen = data["createdWhen"]
@@ -434,8 +449,7 @@ def ingest_factoid(data, ipif_repo):
                 raise DataIntegrityError(
                     f"IPIF JSON Error: Factoid: {data['local_id']} references non-existant Statement @id='{statement['@id']}'"
                 )
-            except Exception as e:
-                print(e)
+
         factoid.save()
 
         statements_to_add = {
@@ -445,13 +459,16 @@ def ingest_factoid(data, ipif_repo):
         current_statements = {statement for statement in factoid.statement.all()}
 
         for current_statement in current_statements:
-            print(current_statement.id, statements_to_add)
+
             if current_statement.id not in statements_to_add:
                 factoid.statement.remove(current_statement)
 
         factoid.save()
+        # update_factoid_index.delay(factoid.pk)
+        # update_person_index.delay(factoid.person.pk)
 
     except Factoid.DoesNotExist:  # Create new factoid
+        print(f"Creating <Factoid @id={qid}>")
         factoid = Factoid()
         factoid.local_id = data["local_id"]
         factoid.createdBy = data["createdBy"]
@@ -489,9 +506,9 @@ def ingest_factoid(data, ipif_repo):
                 pk = build_qualified_id(
                     ipif_repo.endpoint_uri, "Statement", statement["@id"]
                 )
-                print(pk)
+
                 s = Statement.objects.get(pk=pk)
-                print(s)
+
                 factoid.statement.add(s)
             except Statement.DoesNotExist:
                 raise DataIntegrityError(
@@ -499,6 +516,8 @@ def ingest_factoid(data, ipif_repo):
                 )
 
         factoid.save()
+        update_factoid_index.delay(factoid.pk)
+        update_person_index.delay(factoid.person.pk)
 
 
 def ingest_persons(persons_data, ipif_repo):

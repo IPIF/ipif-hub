@@ -2,9 +2,6 @@ from django.db import models
 from django.core.validators import URLValidator
 from django.forms import ValidationError
 
-s
-from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
-
 
 class IpifEntityAbstractBase(models.Model):
     class Meta:
@@ -161,17 +158,18 @@ class URI(models.Model):
         return self.uri
 
 
-try:
-    ipif_hub_repo_AUTOCREATED = IpifRepo.objects.get(
-        endpoint_slug="IPIFHUB_AUTOCREATED"
-    )
-except IpifRepo.DoesNotExist:
-    ipif_hub_repo_AUTOCREATED = IpifRepo(
-        endpoint_name="IPIFHUB_AUTOCREATED",
-        endpoint_slug="IPIFHUB_AUTOCREATED",
-        endpoint_uri="http://IPIFHUB_AUTOCREATED",
-        refresh_frequency="never",
-        refresh_time="00:00",
-        endpoint_is_ipif=False,
-    )
-    ipif_hub_repo_AUTOCREATED.save()
+def get_ipif_hub_repo_AUTOCREATED_instance():
+    try:
+        ipif_hub_repo_AUTOCREATED = IpifRepo.objects.get(
+            endpoint_slug="IPIFHUB_AUTOCREATED"
+        )
+    except IpifRepo.DoesNotExist:
+        ipif_hub_repo_AUTOCREATED = IpifRepo(
+            endpoint_name="IPIFHUB_AUTOCREATED",
+            endpoint_slug="IPIFHUB_AUTOCREATED",
+            endpoint_uri="http://IPIFHUB_AUTOCREATED",
+            refresh_frequency="never",
+            refresh_time="00:00",
+            endpoint_is_ipif=False,
+        )
+        ipif_hub_repo_AUTOCREATED.save()
