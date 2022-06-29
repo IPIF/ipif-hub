@@ -2,6 +2,11 @@ from django import forms
 from datetime import time
 
 
+class IpifRepoLogin(forms.Form):
+    email = forms.EmailField(label="Email")
+    password = forms.CharField(label="Password", widget=forms.PasswordInput())
+
+
 class IpifRepoForm(forms.Form):
     primary_email = forms.EmailField(
         label="Email address", help_text="Primary email address"
