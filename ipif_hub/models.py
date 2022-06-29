@@ -1,6 +1,8 @@
 from django.db import models
 from django.core.validators import URLValidator
 from django.forms import ValidationError
+from django.contrib.auth.models import PermissionsMixin
+from django.contrib.auth.base_user import AbstractBaseUser
 
 
 class IpifEntityAbstractBase(models.Model):
@@ -131,7 +133,7 @@ class Source(IpifEntityAbstractBase):
         return f"{self.label}{uri_string}"
 
 
-class IpifRepo(models.Model):
+class IpifRepo(AbstractBaseUser):
     endpoint_name = models.CharField(max_length=30, default="")
     endpoint_slug = models.CharField(max_length=20, primary_key=True, db_index=True)
     endpoint_uri = models.URLField(db_index=True)
@@ -141,6 +143,11 @@ class IpifRepo(models.Model):
     )
     refresh_time = models.TimeField()
     endpoint_is_ipif = models.BooleanField()
+
+    description = models.TextField()
+    provider = models.CharField(max_length=100, default="", blank=True)
+
+    USERNAME_FIELD = "endpoint_slug"
 
 
 class Place(models.Model):
