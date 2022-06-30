@@ -28,7 +28,11 @@
                 "runserver"
             ],
             "django": true,
-            "justMyCode": true
+            "justMyCode": true,
+            "env": {
+                "email_user": "!",
+                "email_password": "!"
+            }
         },
         {
             "name": "Python: Celery",

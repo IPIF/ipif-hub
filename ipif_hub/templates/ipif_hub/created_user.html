@@ -1,0 +1,18 @@
+{% extends "webpage/base.html" %}
+{% load static %}
+{% load stats_extras %}
+{% load webpage_extras %}
+{% block content %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12" style="text-align:center">
+            <h4>User {{ user.username }} created</h4>
+        </div>
+    </div>
+    <div class="row">
+        A verification email has been sent. Check your emails.
+    </div>
+</div>
+
+{% endblock %}

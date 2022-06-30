@@ -54,8 +54,37 @@ INSTALLED_APPS = [
     "webpage",
     "browsing",
     "infos",
+    "django_email_verification",
     "ipif_hub.apps.IpifHubConfig",
 ]
+
+
+def verified_callback(user):
+    user.is_active = True
+
+
+EMAIL_VERIFIED_CALLBACK = verified_callback
+EMAIL_FROM_ADDRESS = "noreply@aliasaddress.com"
+EMAIL_MAIL_SUBJECT = "Confirm your email"
+EMAIL_MAIL_HTML = "ipif_hub/mail_body.html"
+EMAIL_MAIL_PLAIN = "ipif_hub/mail_body.txt"
+EMAIL_TOKEN_LIFE = 60 * 60
+EMAIL_PAGE_TEMPLATE = "ipif_hub/confirm_template.html"
+EMAIL_PAGE_DOMAIN = "http://127.0.0.1:8000/"
+EMAIL_MULTI_USER = False  # optional (defaults to False)
+
+# For Django Email Backend
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# EMAIL_HOST = "smtp.gmail.com"
+# EMAIL_PORT = 587
+# EMAIL_HOST_USER = os.environ["email_user"]
+# EMAIL_HOST_PASSWORD = os.environ[
+#    "email_password"
+# ]  # os.environ['password_key'] suggested
+# EMAIL_USE_TLS = True
+
 
 HAYSTACK_CONNECTIONS = {
     "default": {

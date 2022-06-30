@@ -1,0 +1,25 @@
+{% extends "webpage/base.html" %}
+{% load static %}
+{% load stats_extras %}
+{% load webpage_extras %}
+{% block content %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12" style="text-align:center">
+            <h4>Email verification</h4>
+        </div>
+    </div>
+    <div class="row">
+
+        {% if success %}
+{{ user.username }}, your account is confirmed!
+{% else %}
+Error, invalid token!
+{% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -2,26 +2,24 @@ from django import forms
 from datetime import time
 
 
-class IpifRepoLogin(forms.Form):
+class UserForm(forms.Form):
+    username = forms.CharField(label="User Name")
     email = forms.EmailField(label="Email")
-    password = forms.CharField(label="Password", widget=forms.PasswordInput())
-
-
-class IpifRepoForm(forms.Form):
-    primary_email = forms.EmailField(
-        label="Email address", help_text="Primary email address"
-    )
-    secondary_email = forms.EmailField(
-        label="Email address", help_text="Additional email address", required=False
-    )
-    tertiary_email = forms.EmailField(
-        label="Email address", help_text="Additional email address", required=False
-    )
     password = forms.CharField(label="Password", widget=forms.PasswordInput())
     confirm_password = forms.CharField(
         label="Confirm Password", widget=forms.PasswordInput()
     )
 
+    def clean(self):
+        cleaned_data = super(UserForm, self).clean()
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if password != confirm_password:
+            raise forms.ValidationError("password and confirm_password does not match")
+
+
+class IpifRepoForm(forms.Form):
     endpoint_slug = forms.CharField(
         label="Endpoint URI prefix",
         help_text="Short URI prefix to namespace data (no spaces or special chars)",
@@ -51,14 +49,6 @@ class IpifRepoForm(forms.Form):
         help_text="URIs in this dataset point to an IPIF-compliant endpoint",
         required=False,
     )
-
-    def clean(self):
-        cleaned_data = super().clean()
-        password = cleaned_data.get("password")
-        confirm_password = cleaned_data.get("confirm_password")
-
-        if password != confirm_password:
-            raise forms.ValidationError("password and confirm_password does not match")
 
 
 """

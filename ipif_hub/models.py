@@ -133,10 +133,11 @@ class Source(IpifEntityAbstractBase):
         return f"{self.label}{uri_string}"
 
 
-class IpifRepo(AbstractBaseUser):
-    primary_email = models.EmailField(null=False)
-    secondary_email = models.EmailField(blank=True, default="")
-    tertiary_email = models.EmailField(blank=True, default="")
+from django.contrib.auth.models import User
+
+
+class IpifRepo(models.Model):
+    owners = models.ManyToManyField(to=User)
 
     endpoint_name = models.CharField(max_length=30, default="")
     endpoint_slug = models.CharField(max_length=20, primary_key=True, db_index=True)
@@ -151,10 +152,7 @@ class IpifRepo(AbstractBaseUser):
     description = models.TextField()
     provider = models.CharField(max_length=100, default="", blank=True)
 
-    email_validated = models.BooleanField(default=False)
     repo_active = models.BooleanField(default=False)
-
-    USERNAME_FIELD = "primary_email"
 
 
 class Place(models.Model):

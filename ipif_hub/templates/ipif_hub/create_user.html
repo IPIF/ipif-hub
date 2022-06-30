@@ -1,0 +1,22 @@
+{% extends "webpage/base.html" %}
+{% load static %}
+{% load stats_extras %}
+{% load webpage_extras %}
+{% block content %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12" style="text-align:center">
+            <h4>Sign up</h4>
+        </div>
+    </div>
+    <div class="row">
+
+<form action="/ipif/user/new" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Submit"/>
+</form>
+</div>
+
+{% endblock %}
