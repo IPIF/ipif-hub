@@ -14,7 +14,7 @@ import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-
+APPEND_SLASH = True
 BASE_DIR = Path(__file__).resolve().parent.parent
 SHARED_URL = "https://shared.acdh.oeaw.ac.at/"
 PROJECT_NAME = "ipifhub"

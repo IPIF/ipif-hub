@@ -1,0 +1,30 @@
+{% extends "webpage/base.html" %}
+{% load static %}
+{% load stats_extras %}
+{% load webpage_extras %}
+{% block content %}
+
+<div class="container">
+    {% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+    <div class="row">
+        <div class="col-md-12" style="text-align:center">
+            <h4>IPIF Repo: {{ repo.endpoint_name }} </h4>
+        </div>
+    </div>
+    <div class="row">
+       
+        <ul>
+        {% for repo in repos %}
+            <li><a href="{% url 'view_repo' repo.endpoint_slug %}">{{ repo.endpoint_name }}</a></li>
+        {% endfor %}
+        </ul>
+    </div>
+</div>
+
+{% endblock %}
