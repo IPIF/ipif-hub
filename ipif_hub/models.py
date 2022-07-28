@@ -154,6 +154,9 @@ class IpifRepo(models.Model):
 
     repo_active = models.BooleanField(default=False)
 
+    batch_is_canonical = models.BooleanField(default=True)
+    rest_write_enabled = models.BooleanField(default=False)
+
 
 class Place(models.Model):
     uri = models.URLField(primary_key=True, db_index=True)
