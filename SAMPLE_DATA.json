@@ -1,13 +1,5 @@
 {
-    "meta": {
-        "endpoint_name": "AHH! PISS",
-        "endpoint_slug": "ahhpiss",
-        "endpoint_uri": "http://ahpiss.com",
-        "refresh_frequency": "daily",
-        "refresh_time": "00:00",
-        "endpoint_is_ipif": false
 
-    },
     "factoids": [{
         "@id": "Factoid1",
         "person-ref": { "@id": "Person1" },
@@ -27,7 +19,7 @@
         "uris": ["http://ahpiss.com/Person1", "http://gnd.de/Person1", "http://shouldbethere.com"],
         "createdBy": "Researcher1",
         "createdWhen": "2012-04-23",
-        "modifiedBy": "Researcher2",
+        "modifiedBy": "Researcher3",
         "modifiedWhen": "2012-04-23"
 
     }],

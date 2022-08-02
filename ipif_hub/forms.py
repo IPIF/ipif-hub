@@ -1,6 +1,8 @@
 from django import forms
 from datetime import time
 
+from ipif_hub.models import IpifRepo
+
 
 class UserForm(forms.Form):
     username = forms.CharField(label="User Name")
@@ -19,7 +21,11 @@ class UserForm(forms.Form):
             raise forms.ValidationError("password and confirm_password does not match")
 
 
-class IpifRepoForm(forms.Form):
+class IpifRepoForm(forms.ModelForm):
+    class Meta:
+        fields = "__all__"
+        model = IpifRepo
+
     endpoint_slug = forms.CharField(
         label="Endpoint URI prefix",
         help_text="Short URI prefix to namespace data (no spaces or special chars)",
@@ -47,6 +53,20 @@ class IpifRepoForm(forms.Form):
         label="IPIF-compliant",
         label_suffix="?",
         help_text="URIs in this dataset point to an IPIF-compliant endpoint",
+        required=False,
+    )
+    batch_is_canonical = forms.BooleanField(
+        initial=True,
+        label="Batch is canonical",
+        label_suffix="?",
+        help_text="Single batch is source of truth: anything missing will be deleted",
+        required=False,
+    )
+    rest_write_enabled = forms.BooleanField(
+        initial=False,
+        label="Update individual entities with REST requests",
+        label_suffix="?",
+        help_text="Allow use of IPIF PUT requests to update single entities",
         required=False,
     )
 

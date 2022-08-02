@@ -16,7 +16,7 @@ DEFAULT_FIELDS = {
     "modifiedBy": {"type": "string"},
 }
 
-schema = {
+FLAT_LIST_SCHEMA = {
     "type": "object",
     "required": ["factoids", "persons", "sources", "statements"],
     "properties": {
@@ -118,4 +118,4 @@ with open("SAMPLE_DATA.json") as f:
     data = json.loads(data)
 
 
-validate(instance=data, schema=schema)
+validate(instance=data, schema=FLAT_LIST_SCHEMA)

@@ -12,9 +12,12 @@ class Command(BaseCommand):
     help = "Ingests data from IPIF-Hub formatted JSON file"
 
     def add_arguments(self, parser: CommandParser) -> None:
+        parser.add_argument("endpoint_id", type=str)
         parser.add_argument("file_path", type=str)
 
-    def handle(self, *args, file_path: str = None, **options) -> None:
+    def handle(
+        self, *args, endpoint_id: str = None, file_path: str = None, **options
+    ) -> None:
         try:
             with open(file_path, "r") as f:
                 data = json.load(f)
@@ -24,7 +27,7 @@ class Command(BaseCommand):
             raise CommandError(f"'{file_path}' does not exist")
 
         try:
-            ingest_data(data)
+            ingest_data(endpoint_id, data)
         except DataFormatError as e:
             raise CommandError(f"DataFormatError: {e.args[0]}")
         except DataIntegrityError as e:

@@ -15,6 +15,14 @@ from ipif_hub.models import (
     get_ipif_hub_repo_AUTOCREATED_instance,
 )
 
+from jsonschema import validate
+from .ingest_schemas import (
+    FLAT_LIST_SCHEMA,
+    PERSON_SOURCE_SCHEMA,
+    FACTOID_SCHEMA,
+    STATEMENT_SCHEMA,
+)
+
 
 ipif_hub_repo_AUTOCREATED = get_ipif_hub_repo_AUTOCREATED_instance()
 
@@ -33,58 +41,6 @@ def hash_content(data):
     return hashlib.md5(content_as_json.encode()).hexdigest()
 
 
-REQUIRED_META_FIELDS = {
-    "endpoint_name",
-    "endpoint_slug",
-    "endpoint_uri",
-    "refresh_frequency",
-    "refresh_time",
-    "endpoint_is_ipif",
-}
-REQUIRED_PERSON_OR_SOURCE_FIELDS = {
-    "@id",
-    "createdBy",
-    "createdWhen",
-    "modifiedBy",
-    "modifiedWhen",
-}
-REQUIRED_STATEMENT_FIELDS = {
-    "@id",
-    "createdBy",
-    "createdWhen",
-    "modifiedBy",
-    "modifiedWhen",
-}
-ALLOWED_STATEMENT_FIELDS = {
-    *REQUIRED_STATEMENT_FIELDS,
-    "label",
-    "statementType",
-    "name",
-    "role",
-    "date",
-    "places",
-    "relatesToPerson",
-    "memberOf",
-    "statementText",
-}
-
-REQUIRED_FACTOID_FIELDS = {
-    "@id",
-    "createdBy",
-    "createdWhen",
-    "modifiedBy",
-    "modifiedWhen",
-    "person-ref",
-    "source-ref",
-    "statement-refs",
-}
-
-ALLOWED_FACTOID_FIELDS = {
-    *REQUIRED_FACTOID_FIELDS,
-    "label",
-}
-
-
 def build_qualified_id(endpoint_uri, entity_type, id):
 
     """Returns the full IPIF-compliant URL version of the entity"""
@@ -93,45 +49,12 @@ def build_qualified_id(endpoint_uri, entity_type, id):
     return f"{uri}/{entity_type}/{id}"
 
 
-def ingest_endpoint_meta(meta_data):
-    """Ingests endpoint metadata in IPIF-Hub Format."""
-    provided_keys = set(meta_data.keys())
-    # Check data fields present and raise error if missing
-    missing_fields = REQUIRED_META_FIELDS - provided_keys
-    if missing_fields:
-        raise DataFormatError(
-            f"IPIF JSON 'meta' fields missing: {', '.join(missing_fields)}"
-        )
-    invalid_fields = REQUIRED_META_FIELDS.symmetric_difference(provided_keys)
-    if invalid_fields:
-        raise DataFormatError(
-            f"IPIF JSON 'meta' has invalid fields: {', '.join(invalid_fields)}"
-        )
-    try:
-        ipif_repo = IpifRepo.objects.filter(pk=meta_data["endpoint_slug"])
-        if ipif_repo:
-            ipif_repo.update(**meta_data)
-        else:
-            ipif_repo = IpifRepo(**meta_data)
-            ipif_repo.save()
-    except ValidationError as e:
-        raise DataFormatError(f"IPIF JSON 'meta' error: {e}")
-    except Exception as e:
-        raise DataFormatError(f"ERROR: {e}")
-
-
 def ingest_statement(data, ipif_repo):
-    provided_keys = set(data.keys())
-    missing_fields = REQUIRED_STATEMENT_FIELDS - provided_keys
-    if missing_fields:
-        raise DataFormatError(
-            f"IPIF JSON 'statement' fields missing: {', '.join(missing_fields)}"
-        )
-    invalid_fields = provided_keys - ALLOWED_STATEMENT_FIELDS
-    if invalid_fields:
-        raise DataFormatError(
-            f"IPIF JSON 'statement' has invalid fields: {', '.join(invalid_fields)}"
-        )
+
+    try:
+        validate(data, schema=STATEMENT_SCHEMA)
+    except Exception as e:
+        raise DataFormatError(e)
 
     data["local_id"] = data.pop("@id")
 
@@ -302,12 +225,11 @@ def ingest_statement(data, ipif_repo):
 
 
 def ingest_person_or_source(entity_class, data, ipif_repo):
-    provided_keys = set(data.keys())
-    missing_fields = REQUIRED_PERSON_OR_SOURCE_FIELDS - provided_keys
-    if missing_fields:
-        raise DataFormatError(
-            f"IPIF JSON 'person' fields missing: {', '.join(missing_fields)}"
-        )
+    try:
+        validate(data, schema=PERSON_SOURCE_SCHEMA)
+    except Exception as e:
+        raise DataFormatError(e)
+
     data["local_id"] = data.pop("@id")
 
     qid = build_qualified_id(
@@ -377,18 +299,11 @@ def ingest_person_or_source(entity_class, data, ipif_repo):
 
 
 def ingest_factoid(data, ipif_repo):
-    provided_keys = set(data.keys())
-    # Check data fields present and raise error if missing
-    missing_fields = REQUIRED_FACTOID_FIELDS - provided_keys
-    if missing_fields:
-        raise DataFormatError(
-            f"IPIF JSON 'factoid' fields missing: {', '.join(missing_fields)}"
-        )
-    invalid_fields = provided_keys - ALLOWED_FACTOID_FIELDS
-    if invalid_fields:
-        raise DataFormatError(
-            f"IPIF JSON 'factoid' has invalid fields: {', '.join(invalid_fields)}"
-        )
+    try:
+        validate(data, schema=FACTOID_SCHEMA)
+    except Exception as e:
+        raise DataFormatError(e)
+
     data["local_id"] = data.pop("@id")
 
     qid = build_qualified_id(ipif_repo.endpoint_uri, "Factoid", data["local_id"])
@@ -397,7 +312,7 @@ def ingest_factoid(data, ipif_repo):
         factoid = Factoid.objects.get(pk=qid)
 
         if factoid.inputContentHash == input_content_hash:
-            print(f'No change to <Factoid @id="{qid}">; skipping.')
+            print(f'No change to <Factoid @id="{qid}">; skipping ingest.')
             return
         else:
             print(f"Updating <Factoid @id={qid}>")
@@ -464,8 +379,6 @@ def ingest_factoid(data, ipif_repo):
                 factoid.statement.remove(current_statement)
 
         factoid.save()
-        # update_factoid_index.delay(factoid.pk)
-        # update_person_index.delay(factoid.person.pk)
 
     except Factoid.DoesNotExist:  # Create new factoid
         print(f"Creating <Factoid @id={qid}>")
@@ -516,8 +429,8 @@ def ingest_factoid(data, ipif_repo):
                 )
 
         factoid.save()
-        update_factoid_index.delay(factoid.pk)
-        update_person_index.delay(factoid.person.pk)
+        # update_factoid_index.delay(factoid.pk)
+        # update_person_index.delay(factoid.person.pk)
 
 
 def ingest_persons(persons_data, ipif_repo):
@@ -542,15 +455,13 @@ def ingest_factoids(factoids_data, ipif_repo):
 
 
 @transaction.atomic
-def ingest_data(data):
+def ingest_data(endpoint_slug, data):
+    # try:
+    #    validate(instance=data, schema=FLAT_LIST_SCHEMA)
+    # except Exception as e:
+    #    raise DataFormatError(e)
 
-    try:
-        ingest_endpoint_meta(data["meta"])
-        pass
-    except KeyError:
-        raise DataFormatError("IPIF JSON is missing endpoint 'meta' field")
-
-    ipif_repo = IpifRepo.objects.get(pk=data["meta"]["endpoint_slug"])
+    ipif_repo = IpifRepo.objects.get(pk=endpoint_slug)
 
     try:
         ingest_persons(data["persons"], ipif_repo)
