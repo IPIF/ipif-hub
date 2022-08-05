@@ -14,14 +14,15 @@ from rest_framework import views as DRF_views
 from rest_framework import parsers as DRF_parsers
 from rest_framework import response as DRF_response
 
-from jsonschema import validate
+from jsonschema import ValidationError, validate
 
 
 from ipif_hub.forms import IpifRepoForm, UserForm
 from ipif_hub.management.utils.ingest_schemas import FLAT_LIST_SCHEMA
 from ipif_hub.models import IpifRepo
 
-from .management.utils.ingest_data import ingest_data
+from ipif_hub.management.utils.ingest_data import ingest_data
+from ipif_hub.tasks import ingest_json_data_task
 
 
 class IpifRepoCreateView(View):
@@ -133,36 +134,36 @@ def create_user(request):
     return render(request, "ipif_hub/create_user.html", {"form": form})
 
 
-from io import StringIO
-import sys
-
-
-class Capturing(list):
-    def __enter__(self):
-        self._stdout = sys.stdout
-        sys.stdout = self._stringio = StringIO()
-        return self
-
-    def __exit__(self, *args):
-        self.extend(self._stringio.getvalue().splitlines())
-        del self._stringio  # free up some memory
-        sys.stdout = self._stdout
-
-
 class BatchUpload(DRF_views.APIView):
     parser_classes = [DRF_parsers.MultiPartParser, DRF_parsers.FileUploadParser]
 
     def post(self, request, pk=None, fname=None):
 
+        repo = IpifRepo.objects.get(pk=pk)
+
+        if request.user not in repo.owners.all():
+            return DRF_response.Response(
+                {"detail": "You do not have permission to push to this endpoint"},
+                status=403,
+            )
+
         f = request.FILES["file"]
 
-        data = json.loads(f.read())
+        try:
+            data = json.loads(f.read())
+            validate(data, schema=FLAT_LIST_SCHEMA)
+        except json.JSONDecodeError as e:
+            return DRF_response.Response(
+                {"detail": "Uploaded file is not parseable as JSON"}, status=400
+            )
+        except ValidationError as e:
+            return DRF_response.Response({"detail": e.message}, status=400)
 
-        with Capturing() as output:
-            ingest_data(pk, data)
-
-        # Maybe make this a background job?
+        ingest_json_data_task.delay(pk, data)
 
         return DRF_response.Response(
-            {"message": "Upload completed.", "log": output}, status=201
+            {
+                "detail": "Upload completed. Ingesting data.",
+            },
+            status=201,
         )

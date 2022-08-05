@@ -1,5 +1,13 @@
+from io import StringIO
+import json
+import sys
+
+from django.core.mail import send_mail
+
 from celery import shared_task
 from celery.contrib import rdb
+from celery.utils.log import get_task_logger
+
 from ipif_hub.search_indexes import (
     FactoidIndex,
     PersonIndex,
@@ -7,7 +15,7 @@ from ipif_hub.search_indexes import (
     StatementIndex,
 )
 from ipif_hub.models import Factoid, Person, Source, Statement
-from celery.utils.log import get_task_logger
+from ipif_hub.management.utils.ingest_data import ingest_data
 
 
 logger = get_task_logger(__name__)
@@ -59,3 +67,32 @@ def update_statement_index(instance_pk):
 
     for factoid in statement.factoids.all():
         update_factoid_index.delay(factoid.pk)
+
+
+class Capturing(list):
+    """Grabs stdout and returns results as an array"""
+
+    def __enter__(self):
+        self._stdout = sys.stdout
+        sys.stdout = self._stringio = StringIO()
+        return self
+
+    def __exit__(self, *args):
+        self.extend(self._stringio.getvalue().splitlines())
+        del self._stringio  # free up some memory
+        sys.stdout = self._stdout
+
+
+@shared_task
+def ingest_json_data_task(pk, data):
+    logger.info("ingesting data")
+
+    with Capturing() as output:
+        ingest_data(pk, data)
+
+    send_mail(
+        subject="Upload complete",
+        message=json.dumps(output),
+        recipient_list=["oculardexterity@gmail.com"],
+        from_email="ipif@hub.com",
+    )
