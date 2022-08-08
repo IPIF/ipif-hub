@@ -23,6 +23,7 @@ logger = get_task_logger(__name__)
 
 @shared_task
 def update_factoid_index(instance_pk):
+    logger.debug(msg=instance_pk)
     factoid_searches = FactoidIndex.objects.filter(django_id=instance_pk)
     for factoid_search in factoid_searches:
         factoid_search.searchindex.update_object(Factoid.objects.get(pk=instance_pk))
@@ -46,6 +47,7 @@ def update_factoid_index(instance_pk):
 
 @shared_task
 def update_person_index(instance_pk):
+
     person = Person.objects.get(pk=instance_pk)
 
     for factoid in person.factoids.all():
@@ -62,7 +64,7 @@ def update_source_index(instance_pk):
 
 @shared_task
 def update_statement_index(instance_pk):
-    logger.log("updated statement")
+
     statement = Statement.objects.get(pk=instance_pk)
 
     for factoid in statement.factoids.all():

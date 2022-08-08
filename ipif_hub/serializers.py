@@ -171,7 +171,7 @@ class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
         made into nested dicts
         """
         data = super().to_representation(instance)
-        print(data)
+
         return_dict = {}
         for k, v in data.items():
 

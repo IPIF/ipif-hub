@@ -26,7 +26,6 @@ def index_factoid(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Person)
 def index_person(sender, instance, **kwargs):
-
     update_person_index.delay(instance.pk)
 
 

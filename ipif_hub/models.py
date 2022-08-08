@@ -40,6 +40,13 @@ class IpifEntityAbstractBase(models.Model):
 
     def build_uri_id_from_slug(self, id):
         """Returns the full IPIF-compliant URL version of the entity"""
+        try:
+            validator = URLValidator()
+            validator(id)
+            return id
+        except ValidationError:
+            pass
+
         url = (
             self.ipif_repo.endpoint_uri[:-1]
             if self.ipif_repo.endpoint_uri.endswith("/")
@@ -183,11 +190,6 @@ class IpifRepo(models.Model):
 
     batch_is_canonical = models.BooleanField(default=True)
     rest_write_enabled = models.BooleanField(default=False)
-
-    def clean(self):
-        print("calling clean", self.endpoint_slug)
-        if len(self.endpoint_slug) < 1:
-            raise ValidationError("Empty error message")
 
 
 class IngestionJob(models.Model):
