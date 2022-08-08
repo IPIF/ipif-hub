@@ -19,7 +19,7 @@ from jsonschema import ValidationError, validate
 
 from ipif_hub.forms import IpifRepoForm, UserForm
 from ipif_hub.management.utils.ingest_schemas import FLAT_LIST_SCHEMA
-from ipif_hub.models import IpifRepo
+from ipif_hub.models import IpifRepo, IngestionJob
 
 from ipif_hub.management.utils.ingest_data import ingest_data
 from ipif_hub.tasks import ingest_json_data_task
@@ -134,6 +134,25 @@ def create_user(request):
     return render(request, "ipif_hub/create_user.html", {"form": form})
 
 
+from django.contrib.sites.shortcuts import get_current_site
+import uuid
+
+
+class IngestionJobView(DRF_views.APIView):
+    def get(self, request, pk=None):
+        job = IngestionJob.objects.get(id=uuid.UUID(pk))
+        return DRF_response.Response(
+            {
+                "@id": job.id,
+                "completed": job.is_complete,
+                "duration": job.job_duration,
+                "job_status": job.job_status,
+                "detail": job.job_output,
+            },
+            status=200,
+        )
+
+
 class BatchUpload(DRF_views.APIView):
     parser_classes = [DRF_parsers.MultiPartParser, DRF_parsers.FileUploadParser]
 
@@ -148,9 +167,10 @@ class BatchUpload(DRF_views.APIView):
             )
 
         f = request.FILES["file"]
+        file_contents = f.read()
 
         try:
-            data = json.loads(f.read())
+            data = json.loads(file_contents)
             validate(data, schema=FLAT_LIST_SCHEMA)
         except json.JSONDecodeError as e:
             return DRF_response.Response(
@@ -159,11 +179,15 @@ class BatchUpload(DRF_views.APIView):
         except ValidationError as e:
             return DRF_response.Response({"detail": e.message}, status=400)
 
-        ingest_json_data_task.delay(pk, data)
+        job = IngestionJob(ipif_repo=repo, job_type="file_batch_upload")
+        job.save()
+
+        ingest_json_data_task.delay(pk, data, job.id)
 
         return DRF_response.Response(
             {
-                "detail": "Upload completed. Ingesting data.",
+                "detail": f"Upload completed. Ingesting data. Track job at {request.scheme}://{get_current_site(request)}/job/{job.id}/ ",
+                "job_uri": f"{request.scheme}://{get_current_site(request)}/job/{job.id}/",
             },
             status=201,
         )

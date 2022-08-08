@@ -1,3 +1,5 @@
+from datetime import datetime
+from uuid import uuid4
 from django.db import models
 from django.core.validators import URLValidator
 from django.forms import ValidationError
@@ -48,8 +50,6 @@ class IpifEntityAbstractBase(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.id or self.id == "http://noneset.com":
-            print("no id set... generating", self)
-            print(self.build_uri_id_from_slug(self.local_id))
             self.id = self.build_uri_id_from_slug(self.local_id)
         super().save(*args, **kwargs)
 
@@ -133,31 +133,6 @@ class Source(IpifEntityAbstractBase):
         return f"{self.label}{uri_string}"
 
 
-from django.contrib.auth.models import User
-
-
-class IpifRepo(models.Model):
-    owners = models.ManyToManyField(to=User)
-
-    endpoint_name = models.CharField(max_length=30, default="")
-    endpoint_slug = models.CharField(max_length=20, primary_key=True, db_index=True)
-    endpoint_uri = models.URLField(db_index=True)
-    refresh_frequency = models.CharField(
-        max_length=10,
-        choices=(("daily", "daily"), ("weekly", "weekly"), ("never", "never")),
-    )
-    refresh_time = models.TimeField()
-    endpoint_is_ipif = models.BooleanField()
-
-    description = models.TextField()
-    provider = models.CharField(max_length=100, default="", blank=True)
-
-    repo_active = models.BooleanField(default=False)
-
-    batch_is_canonical = models.BooleanField(default=True)
-    rest_write_enabled = models.BooleanField(default=False)
-
-
 class Place(models.Model):
     uri = models.URLField(primary_key=True, db_index=True)
     label = models.CharField(max_length=300, null=True, db_index=True)
@@ -171,6 +146,72 @@ class URI(models.Model):
 
     def __str__(self):
         return self.uri
+
+
+from django.contrib.auth.models import User
+from django.core.validators import MinLengthValidator
+from django.core.exceptions import ValidationError
+
+
+class IpifRepo(models.Model):
+    owners = models.ManyToManyField(to=User)
+
+    endpoint_slug = models.CharField(
+        max_length=20,
+        primary_key=True,
+        db_index=True,
+        blank=False,
+        editable=False,
+        null=False,
+        default=None,
+    )
+    endpoint_name = models.CharField(max_length=30, default="")
+
+    endpoint_uri = models.URLField(db_index=True)
+    refresh_frequency = models.CharField(
+        max_length=10,
+        choices=(("daily", "daily"), ("weekly", "weekly"), ("never", "never")),
+        default="never",
+    )
+    refresh_time = models.TimeField(null=True)
+    endpoint_is_ipif = models.BooleanField(default=False)
+
+    description = models.TextField()
+    provider = models.CharField(max_length=100, default="", blank=True)
+
+    repo_active = models.BooleanField(default=False)
+
+    batch_is_canonical = models.BooleanField(default=True)
+    rest_write_enabled = models.BooleanField(default=False)
+
+    def clean(self):
+        print("calling clean", self.endpoint_slug)
+        if len(self.endpoint_slug) < 1:
+            raise ValidationError("Empty error message")
+
+
+class IngestionJob(models.Model):
+    id = models.UUIDField(primary_key=True, editable=False, default=uuid4)
+    is_complete = models.BooleanField(default=False)
+    start_datetime = models.DateTimeField(default=datetime.now)
+    end_datetime = models.DateTimeField(default=None, null=True, blank=True)
+    job_type = models.CharField(
+        max_length=20, choices=(("file_batch_upload", "file batch upload"),)
+    )
+    ipif_repo = models.ForeignKey("IpifRepo", on_delete=models.CASCADE)
+
+    job_status = models.CharField(max_length=20, default="created")
+    job_output = models.TextField(default="")
+
+    def mark_as_complete(self):
+        self.end_datetime = datetime.now()
+        self.is_complete = True
+
+    @property
+    def job_duration(self):
+        if self.is_complete:
+            return self.end_datetime - self.start_datetime
+        return None
 
 
 def get_ipif_hub_repo_AUTOCREATED_instance():

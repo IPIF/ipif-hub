@@ -14,7 +14,7 @@ from ipif_hub.search_indexes import (
     SourceIndex,
     StatementIndex,
 )
-from ipif_hub.models import Factoid, Person, Source, Statement
+from ipif_hub.models import Factoid, Person, Source, Statement, IngestionJob
 from ipif_hub.management.utils.ingest_data import ingest_data
 
 
@@ -83,16 +83,32 @@ class Capturing(list):
         sys.stdout = self._stdout
 
 
+import datetime
+import time
+
+
 @shared_task
-def ingest_json_data_task(pk, data):
+def ingest_json_data_task(repo_id, data, job_id=None):
     logger.info("ingesting data")
+    job = IngestionJob.objects.get(pk=job_id)
 
+    time.sleep(30)
+    job.job_status = "running"
+    job.save()
     with Capturing() as output:
-        ingest_data(pk, data)
+        ingest_data(repo_id, data)
 
+    job.is_complete = True
+    job.job_output = output
+    job.job_status = "successful"
+    job.end_datetime = datetime.datetime.now()
+    job.save()
+
+    """ # Don't need this any more
     send_mail(
         subject="Upload complete",
         message=json.dumps(output),
         recipient_list=["oculardexterity@gmail.com"],
         from_email="ipif@hub.com",
     )
+    """
