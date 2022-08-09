@@ -2,7 +2,7 @@ import pytest
 from django.test import override_settings
 from django.core.management import call_command
 
-from ipif_hub.models import IpifRepo, Person, Source, Statement, Factoid
+from ipif_hub.models import IpifRepo, Person, Source, Statement, Factoid, Place
 import datetime
 
 
@@ -70,13 +70,36 @@ def source(repo):
 @pytest.fixture
 @pytest.mark.django_db(transaction=True)
 def statement(repo):
+    related_person = Person(
+        local_id="related_person",
+        label="Related Person",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    related_person.save()
+
+    place = Place(label="Nowhere", uri="http://places.com/nowhere")
+    place.save()
+
     st = Statement(
         local_id="statement1",
         label="Statement One",
         ipif_repo=repo,
         **created_modified,
-        name="John Smith"
+        statementType_uri="http://all_purpose_statement.com",
+        statementType_label="All Purpose Statement",
+        name="John Smith",
+        role_uri="http://role.com/unemployed",
+        role_label="unemployed",
+        date_sortdate=datetime.date(1900, 1, 1),
+        date_label="1 Jan 1900",
+        memberOf_uri="http://orgs.com/madeup",
+        memberOf_label="Made Up Organisation",
+        statementText="John Smith is a Member of Madeup",
     )
+    st.save()
+    st.relatesToPerson.add(related_person)
+    st.places.add(place)
     st.save()
     yield st
 
