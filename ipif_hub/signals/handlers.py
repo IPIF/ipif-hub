@@ -1,15 +1,7 @@
-from django.db.models.signals import post_save, m2m_changed
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-
 from ipif_hub.models import Person, Source, Statement, Factoid
-from ipif_hub.serializers import (
-    FactoidSerializer,
-    PersonSerializer,
-    SourceSerializer,
-    StatementSerializer,
-)
-from ipif_hub.search_indexes import PersonIndex
 
 from ipif_hub.tasks import (
     update_factoid_index,

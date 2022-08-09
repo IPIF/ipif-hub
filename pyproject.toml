@@ -19,6 +19,8 @@ psycopg2-binary = "^2.9.3"
 django-email-verification = "^0.2.2"
 PyJWT = "^2.4.0"
 jsonschema = "^4.8.0"
+pytest-django = "^4.5.2"
+pytest-sugar = "^0.9.5"
 
 [tool.poetry.dev-dependencies]
 black = "^22.1.0"
