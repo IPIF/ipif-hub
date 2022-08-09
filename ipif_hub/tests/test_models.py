@@ -6,18 +6,9 @@ from django.db import IntegrityError
 from ipif_hub.models import Factoid, Person, IpifRepo, Source, Statement
 from ipif_hub.search_indexes import PersonIndex
 
-
 import pytest
+from ipif_hub.tests.conftest import repo, test_repo_no_slug
 
-test_repo_no_slug = {
-    "endpoint_name": "TestRepo",
-    "endpoint_uri": "http://test.com/",
-    "refresh_frequency": "daily",
-    "refresh_time": datetime.time(0, 0, 0),
-    "endpoint_is_ipif": False,
-    "description": "A test repo",
-    "provider": "University of Test",
-}
 
 created_modified = {
     "createdWhen": datetime.date(2022, 3, 1),
@@ -25,14 +16,6 @@ created_modified = {
     "modifiedWhen": datetime.date(2022, 4, 1),
     "modifiedBy": "researcher2",
 }
-
-
-@pytest.fixture
-def repo():
-    # Create a repo
-    repo = IpifRepo(endpoint_slug="testrepo", **test_repo_no_slug)
-    repo.save()
-    yield repo
 
 
 @pytest.mark.django_db
