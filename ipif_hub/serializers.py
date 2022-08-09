@@ -73,6 +73,7 @@ class FactoidSerializer(FactoidRefSerializer):
         model = Factoid
         fields = [
             "id",
+            "label",
             "person",
             "source",
             "statement",

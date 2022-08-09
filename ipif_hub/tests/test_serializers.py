@@ -109,3 +109,21 @@ def test_statement_serializer(statement, factoid):
     assert serialized_data.get("relatesToPerson")[0]["label"] == "Related Person"
     assert serialized_data.get("places")[0]["uri"] == "http://places.com/nowhere"
     assert serialized_data.get("places")[0]["label"] == "Nowhere"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_factoid_serializer(factoid):
+    serialized_data = FactoidSerializer(factoid).data
+    assert serialized_data.get("@id") == "http://test.com/factoids/factoid1"
+    assert serialized_data.get("label") == "Factoid One"
+    verify_created_modified(serialized_data)
+
+    assert serialized_data.get("person-ref")["@id"] == "http://test.com/persons/person1"
+    assert serialized_data.get("person-ref")["label"] == "Person One"
+    assert serialized_data.get("source-ref")["@id"] == "http://test.com/sources/source1"
+    assert serialized_data.get("source-ref")["label"] == "Source One"
+    assert (
+        serialized_data.get("statement-refs")[0]["@id"]
+        == "http://test.com/statements/statement1"
+    )
+    assert serialized_data.get("statement-refs")[0]["label"] == "Statement One"
