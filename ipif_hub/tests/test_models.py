@@ -7,15 +7,7 @@ from ipif_hub.models import Factoid, Person, IpifRepo, Source, Statement
 from ipif_hub.search_indexes import PersonIndex
 
 import pytest
-from ipif_hub.tests.conftest import repo, test_repo_no_slug
-
-
-created_modified = {
-    "createdWhen": datetime.date(2022, 3, 1),
-    "createdBy": "researcher1",
-    "modifiedWhen": datetime.date(2022, 4, 1),
-    "modifiedBy": "researcher2",
-}
+from ipif_hub.tests.conftest import repo, test_repo_no_slug, created_modified
 
 
 @pytest.mark.django_db
@@ -80,7 +72,7 @@ def test_entity_is_in_haystack(repo):
     assert pi.pk == p.pk
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_adding_factoid_triggers_update_of_person_index(repo):
     """Test adding a factoid related to Person causes index to refresh"""
 

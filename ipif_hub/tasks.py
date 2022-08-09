@@ -94,7 +94,6 @@ def ingest_json_data_task(repo_id, data, job_id=None):
     logger.info("ingesting data")
     job = IngestionJob.objects.get(pk=job_id)
 
-    time.sleep(30)
     job.job_status = "running"
     job.save()
     with Capturing() as output:

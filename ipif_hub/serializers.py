@@ -42,7 +42,7 @@ class SourceRefSerializer(GenericRefSerializer, serializers.ModelSerializer):
 class StatementRefSerializer(GenericRefSerializer, serializers.ModelSerializer):
     class Meta:
         model = Statement
-        fields = ["id"]
+        fields = ["id", "label"]
 
 
 class FactoidRefSerializer(GenericRefSerializer, serializers.ModelSerializer):
@@ -53,7 +53,7 @@ class FactoidRefSerializer(GenericRefSerializer, serializers.ModelSerializer):
 
     class Meta:
         model = Factoid
-        fields = ["id", "person", "source", "statement"]
+        fields = ["id", "label", "person", "source", "statement"]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
