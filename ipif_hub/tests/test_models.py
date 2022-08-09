@@ -104,20 +104,20 @@ class TestCreateEntity(TestCase):
         )[0]
         self.assertEqual(pi.pk, p.pk)
 
-    def test_related_entity_triggers_index_update(self):
+    def test_adding_factoid_triggers_update_of_person_index(self):
+        # Create Person
         p = Person(local_id="person1", ipif_repo=self.repo, **created_modified)
         p.save()
 
+        # Confirm factoid-refs in index is empty
         pi = PersonIndex.objects.filter(
             id="ipif_hub.person.http://test.com/persons/person1"
         )[0]
 
-        pi_data = json.loads(pi.pre_serialized)
-        self.assertEqual(pi_data["@id"], "http://test.com/persons/person1")
+        pi_json = json.loads(pi.pre_serialized)
+        self.assertFalse(pi_json["factoid-refs"])
 
-        # Check that no factoid-refs yet added
-        self.assertFalse(pi_data["factoid-refs"])
-
+        # Create Source and Statement
         s = Source(local_id="source1", ipif_repo=self.repo, **created_modified)
         s.save()
         st = Statement(
@@ -128,31 +128,7 @@ class TestCreateEntity(TestCase):
         )
         st.save()
 
-        f = Factoid(local_id="factoid1", ipif_repo=self.repo, **created_modified)
-        f.person = p
-        f.source = s
-        f.save()
-        f.statement.add(st)
-        f.save()
-        import time
-
-    def test_create_factoid(self):
-
-        p = Person.objects.create(
-            local_id="person1", ipif_repo=self.repo, **created_modified
-        )
-        p.save()
-
-        s = Source(local_id="source1", ipif_repo=self.repo, **created_modified)
-        s.save()
-        st = Statement(
-            local_id="statement1",
-            ipif_repo=self.repo,
-            **created_modified,
-            name="John Smith"
-        )
-        st.save()
-
+        # Create Factoid
         f = Factoid(local_id="factoid1", ipif_repo=self.repo, **created_modified)
         f.person = p
         f.source = s
@@ -160,6 +136,7 @@ class TestCreateEntity(TestCase):
         f.statement.add(st)
         f.save()
 
+        # Check everything that should be in the index is
         pi = PersonIndex.objects.filter(
             id="ipif_hub.person.http://test.com/persons/person1"
         )[0]
