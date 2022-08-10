@@ -14,15 +14,26 @@
         "modifiedWhen": "2012-04-23"
     }],
     "persons": [{
-        "@id": "Person1",
-        "label": "Person Number One",
-        "uris": ["http://ahpiss.com/Person1", "http://gnd.de/Person1", "http://shouldbethere.com"],
-        "createdBy": "Researcher3",
-        "createdWhen": "2012-04-23",
-        "modifiedBy": "Researcher3",
-        "modifiedWhen": "2012-04-23"
+            "@id": "Person1",
+            "label": "Person Number One",
+            "uris": ["http://ahpiss.com/Person1", "http://gnd.de/Person1", "http://shouldbethere.com"],
+            "createdBy": "Researcher3",
+            "createdWhen": "2012-04-23",
+            "modifiedBy": "Researcher3",
+            "modifiedWhen": "2012-04-23"
 
-    }],
+        },
+        {
+            "@id": "Person2",
+            "label": "Person Number Two",
+            "uris": ["http://ahpiss.com/Person2", "http://gnd.de/Person2", "http://shouldbethere.com/2"],
+            "createdBy": "Researcher3",
+            "createdWhen": "2012-04-23",
+            "modifiedBy": "Researcher3",
+            "modifiedWhen": "2012-04-23"
+
+        }
+    ],
     "sources": [{
             "@id": "Source1",
             "label": "Source Number One (Smith, 1900)",

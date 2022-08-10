@@ -231,3 +231,5 @@ def get_ipif_hub_repo_AUTOCREATED_instance():
             endpoint_is_ipif=False,
         )
         ipif_hub_repo_AUTOCREATED.save()
+
+    return ipif_hub_repo_AUTOCREATED

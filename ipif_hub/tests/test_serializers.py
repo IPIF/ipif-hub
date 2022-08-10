@@ -68,6 +68,7 @@ def test_person_serializer(person, factoid):
     serialized_data = PersonSerializer(person).data
     assert serialized_data.get("@id") == "http://test.com/persons/person1"
     assert serialized_data.get("label") == "Person One"
+    assert serialized_data.get("uris") == ["http://alternative.com/person1"]
     verify_created_modified(serialized_data)
     verify_associated_factoid_ref(serialized_data)
 
@@ -103,8 +104,7 @@ def test_statement_serializer(statement, factoid):
     assert serialized_data.get("memberOf")["label"] == "Made Up Organisation"
     assert serialized_data.get("statementText") == "John Smith is a Member of Madeup"
     assert (
-        serialized_data.get("relatesToPerson")[0]["uri"]
-        == "http://test.com/persons/related_person"
+        serialized_data.get("relatesToPerson")[0]["uri"] == "http://related.com/person1"
     )
     assert serialized_data.get("relatesToPerson")[0]["label"] == "Related Person"
     assert serialized_data.get("places")[0]["uri"] == "http://places.com/nowhere"

@@ -2,7 +2,16 @@ import pytest
 from django.test import override_settings
 from django.core.management import call_command
 
-from ipif_hub.models import IpifRepo, Person, Source, Statement, Factoid, Place
+from ipif_hub.models import (
+    IpifRepo,
+    Person,
+    Source,
+    Statement,
+    Factoid,
+    Place,
+    URI,
+    get_ipif_hub_repo_AUTOCREATED_instance,
+)
 import datetime
 
 
@@ -54,6 +63,10 @@ def person(repo):
         local_id="person1", label="Person One", ipif_repo=repo, **created_modified
     )
     p.save()
+    uri = URI(uri="http://alternative.com/person1")
+    uri.save()
+    p.uris.add(uri)
+    p.save()
     yield p
 
 
@@ -71,9 +84,9 @@ def source(repo):
 @pytest.mark.django_db(transaction=True)
 def statement(repo):
     related_person = Person(
-        local_id="related_person",
+        local_id="http://related.com/person1",
         label="Related Person",
-        ipif_repo=repo,
+        ipif_repo=get_ipif_hub_repo_AUTOCREATED_instance(),
         **created_modified,
     )
     related_person.save()

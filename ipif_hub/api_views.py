@@ -4,9 +4,12 @@ import json
 from typing import List
 
 from django.db.models import Q
+from django.core.validators import URLValidator
+from django.forms import ValidationError
 
 from rest_framework import viewsets
 from rest_framework.response import Response
+from rest_framework.decorators import renderer_classes
 
 from haystack.query import SQ, SearchQuerySet
 from haystack.inputs import Raw
@@ -23,8 +26,18 @@ from .serializers import (
     StatementSerializer,
 )
 
+url_validate = URLValidator()
 
-def build_statement_filters(request) -> List:
+
+def is_uri(s):
+    try:
+        url_validate(s)
+        return True
+    except ValidationError:
+        return False
+
+
+def build_statement_filters(request) -> List[Q]:
     """
     Builds a list of statement filters
 
@@ -74,10 +87,31 @@ def build_statement_filters(request) -> List:
 
 
 def query_dict(path):
+    """Creates an ORM join-path to related entities, returning
+    a function that creates a dictionary
+
+    Requests to /factoids join straight to the related models
+    (no addtional path)
+
+    Requests to /sources, /persons, /statements require join via
+    `factoid__`
+    """
+
     def inner(field, param):
         return {f"{path}{field}": param}
 
     return inner
+
+
+from rest_framework import renderers
+
+
+class AlreadyJSONRenderer(renderers.BaseRenderer):
+    media_type = "application/json"
+    format = "json"
+
+    def render(self, data, media_type=None, renderer_context=None):
+        return data
 
 
 def list_view(object_class):
@@ -95,6 +129,7 @@ def list_view(object_class):
     ✅ sourceId
     ✅ s"""
 
+    # @renderer_classes([AlreadyJSONRenderer])
     def inner(self, request, repo=None):
 
         # Make a copy of this so we can pop off the fulltext fields and
@@ -129,11 +164,12 @@ def list_view(object_class):
         else:
             sort_string = f"{sort_order}sort_{sortBy}"
 
+        # Restrict by type
+        solr_lookup_dict = {"ipif_type": object_class.__name__.lower()}
         # Build lookup dict for fulltext search parameters
-        fulltext_lookup_dict = {"ipif_type": object_class.__name__.lower()}
         for p in ["st", "s", "f", "p"]:
             if param := request_params.pop(p, None):
-                fulltext_lookup_dict[f"{p}__contains"] = param[0]
+                solr_lookup_dict[f"{p}__contains"] = param[0]
                 # For some reason ^^^^ param here is a list, this is a list...
 
         if not request_params:
@@ -143,7 +179,7 @@ def list_view(object_class):
             search_queryset = (
                 SearchQuerySet()
                 .exclude(ipif_repo_slug="IPIFHUB_AUTOCREATED")
-                .filter(**fulltext_lookup_dict)
+                .filter(**solr_lookup_dict)
             )
 
             if sortBy:
@@ -221,7 +257,7 @@ def list_view(object_class):
         search_queryset = (
             SearchQuerySet()
             .exclude(ipif_repo_slug="IPIFHUB_AUTOCREATED")
-            .filter(**fulltext_lookup_dict, django_id__in=solr_pks)
+            .filter(**solr_lookup_dict, django_id__in=solr_pks)
         )
 
         if sortBy:
@@ -253,7 +289,21 @@ def retrieve_view(object_class):
     # New version hitting SOLR
 
     def inner(self, request, pk, repo=None):
+
+        # If no repository is specified, the pk needs to be a URI
+        if repo == None and not is_uri(pk):
+            return Response(
+                status=400,
+                data={
+                    "detail": (
+                        "Either query a specific dataset using"
+                        " the dataset-specific route, or provide a full URI as identifier"
+                    )
+                },
+            )
+
         index = globals()[f"{object_class.__name__}Index"]
+
         sq = (
             SQ(id=f"ipif_hub.{object_class.__name__.lower()}.{pk}")
             | SQ(uris=pk)
@@ -262,9 +312,9 @@ def retrieve_view(object_class):
 
         if repo:
             sq &= SQ(ipif_repo_slug=repo)
-        result = index.objects.filter(sq)
+        result = index.objects.filter(sq).values("pre_serialized")
         try:
-            return Response(json.loads(result[0].pre_serialized))
+            return Response(json.loads(result[0]["pre_serialized"]))
         except IndexError:
             return Response(status=404)
 
@@ -287,7 +337,7 @@ def build_viewset(object_class) -> viewsets.ViewSet:
         viewset,
         (viewsets.ViewSet,),
         {
-            "pagination_class": StandardResultsSetPagination,
+            # "pagination_class": StandardResultsSetPagination, # does not work
             "list": list_view(object_class),
             "retrieve": retrieve_view(object_class),
         },
