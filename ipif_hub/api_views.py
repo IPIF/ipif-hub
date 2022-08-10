@@ -119,7 +119,7 @@ def list_view(object_class):
 
     ✅ size
     ✅ page
-    sortBy
+    ✅ sortBy
 
     ✅ p
     ✅ factoidId
@@ -184,7 +184,12 @@ def list_view(object_class):
 
             if sortBy:
                 search_queryset = search_queryset.order_by(sort_string)
-            result = islice(search_queryset, page_start, page_end)
+
+            result = islice(
+                search_queryset,
+                page_start,
+                page_end,
+            )
 
             return Response([json.loads(r.pre_serialized) for r in result])
 

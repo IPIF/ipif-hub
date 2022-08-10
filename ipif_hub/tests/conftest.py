@@ -72,6 +72,20 @@ def person(repo):
 
 @pytest.fixture
 @pytest.mark.django_db(transaction=True)
+def person2(repo):
+    p = Person(
+        local_id="person2", label="Person Two", ipif_repo=repo, **created_modified
+    )
+    p.save()
+    uri = URI(uri="http://alternative.com/person2")
+    uri.save()
+    p.uris.add(uri)
+    p.save()
+    yield p
+
+
+@pytest.fixture
+@pytest.mark.django_db(transaction=True)
 def source(repo):
     s = Source(
         local_id="source1", label="Source One", ipif_repo=repo, **created_modified

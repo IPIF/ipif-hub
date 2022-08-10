@@ -28,7 +28,7 @@ from ipif_hub.serializers import (
     SourceSerializer,
     StatementSerializer,
 )
-from ipif_hub.tests.conftest import factoid, person, source, statement
+from ipif_hub.tests.conftest import factoid, person, source, statement, person2
 
 
 def build_request_with_params(**params) -> Request:
@@ -268,3 +268,61 @@ def test_list_view_basic_returns_item_with_full_text(person, factoid):
 
     assert response.status_code == 200
     assert response.data == [FactoidSerializer(factoid).data]
+
+
+@pytest.mark.django_db(transaction=True)
+def test_list_view_sort_by(person, person2, factoid):
+    vs = PersonViewSet()
+    req = build_request_with_params()
+
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == [
+        PersonSerializer(person2).data,
+        PersonSerializer(person).data,
+    ]
+
+    req = build_request_with_params(sortBy="personId ASC")
+
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == [
+        PersonSerializer(person).data,
+        PersonSerializer(person2).data,
+    ]
+
+    req = build_request_with_params(sortBy="personId DESC")
+
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == [
+        PersonSerializer(person2).data,
+        PersonSerializer(person).data,
+    ]
+
+
+@pytest.mark.django_db(transaction=True)
+def test_list_view_pagination(person, person2, factoid):
+    vs = PersonViewSet()
+
+    req = build_request_with_params(size=1, page=1, sortBy="personId")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == [
+        PersonSerializer(person).data,
+    ]
+
+    req = build_request_with_params(size=1, page=2, sortBy="personId")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == [
+        PersonSerializer(person2).data,
+    ]
+
+    req = build_request_with_params(size=2, page=1, sortBy="personId")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == [
+        PersonSerializer(person).data,
+        PersonSerializer(person2).data,
+    ]
