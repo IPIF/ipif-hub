@@ -216,6 +216,9 @@ def list_view(object_class):
         if param := request.query_params.get("sourceId"):
             q &= Q(**qd("source__id", param))
 
+        if param := request.query_params.get("personId"):
+            q &= Q(**qd("person__id", param))
+
         # Now create queryset with previously defined q object and add statement filters
         queryset = object_class.objects.filter(q)
 

@@ -326,3 +326,33 @@ def test_list_view_pagination(person, person2, factoid):
         PersonSerializer(person).data,
         PersonSerializer(person2).data,
     ]
+
+
+@pytest.mark.django_db(transaction=True)
+def test_list_view_with_id_query_params(person, factoid, statement):
+    vs = PersonViewSet()
+
+    req = build_request_with_params(statementId="http://test.com/statements/statement1")
+
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == [PersonSerializer(person).data]
+
+    # Now try it matching nothing to make sure the filter works
+    req = build_request_with_params(statementId="MATCHES_NOTHING")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == []
+
+    vs = StatementViewSet()
+    req = build_request_with_params(personId="http://test.com/persons/person1")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == [StatementSerializer(statement).data]
+
+    # Now try it matching nothing to make sure the filter works
+    vs = StatementViewSet()
+    req = build_request_with_params(personId="MATCHES_NOTHING")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == []
