@@ -333,26 +333,60 @@ def test_list_view_with_id_query_params(person, factoid, statement):
     vs = PersonViewSet()
 
     req = build_request_with_params(statementId="http://test.com/statements/statement1")
-
-    response = vs.list(request=req)
+    with assertNumQueries(1):
+        response = vs.list(request=req)
     assert response.status_code == 200
     assert response.data == [PersonSerializer(person).data]
 
     # Now try it matching nothing to make sure the filter works
     req = build_request_with_params(statementId="MATCHES_NOTHING")
-    response = vs.list(request=req)
+    with assertNumQueries(1):
+        response = vs.list(request=req)
     assert response.status_code == 200
     assert response.data == []
 
     vs = StatementViewSet()
     req = build_request_with_params(personId="http://test.com/persons/person1")
-    response = vs.list(request=req)
+    with assertNumQueries(1):
+        response = vs.list(request=req)
     assert response.status_code == 200
     assert response.data == [StatementSerializer(statement).data]
 
     # Now try it matching nothing to make sure the filter works
     vs = StatementViewSet()
     req = build_request_with_params(personId="MATCHES_NOTHING")
-    response = vs.list(request=req)
+    with assertNumQueries(1):
+        response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == []
+
+    vs = StatementViewSet()
+    req = build_request_with_params(factoidId="http://test.com/factoids/factoid1")
+    with assertNumQueries(1):
+        response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == [StatementSerializer(statement).data]
+
+    # Now try it matching nothing to make sure the filter works
+    vs = StatementViewSet()
+    req = build_request_with_params(factoidId="MATCHES_NOTHING")
+    with assertNumQueries(1):
+        response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == []
+
+    vs = StatementViewSet()
+    req = build_request_with_params(sourceId="http://test.com/sources/source1")
+    with assertNumQueries(1):
+        response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == [StatementSerializer(statement).data]
+
+    # Now try it matching nothing to make sure the filter works
+    vs = StatementViewSet()
+    req = build_request_with_params(sourceId="MATCHES_NOTHING")
+
+    with assertNumQueries(1):
+        response = vs.list(request=req)
     assert response.status_code == 200
     assert response.data == []
