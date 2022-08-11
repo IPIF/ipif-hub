@@ -76,6 +76,7 @@ def ingest_statement(data, ipif_repo):
 
         try:  # Now update the object
             statement.local_id = data["local_id"]
+            statement.label = data["label"]
             statement.createdBy = data["createdBy"]
             statement.createdWhen = data["createdWhen"]
             statement.modifiedBy = data["modifiedBy"]
@@ -159,6 +160,7 @@ def ingest_statement(data, ipif_repo):
         try:
             statement = Statement()
             statement.local_id = data["local_id"]
+            statement.label = data["label"]
             statement.createdBy = data["createdBy"]
             statement.createdWhen = data["createdWhen"]
             statement.modifiedBy = data["modifiedBy"]

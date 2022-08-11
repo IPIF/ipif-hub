@@ -2,10 +2,11 @@ from copy import deepcopy
 import datetime
 import pytest
 
-from ipif_hub.models import IpifRepo, Person, Source, URI
+from ipif_hub.models import IpifRepo, Person, Source, URI, Statement
 from ipif_hub.management.utils.ingest_data import (
     DataFormatError,
     ingest_person_or_source,
+    ingest_statement,
 )
 
 from ipif_hub.tests.conftest import repo
@@ -216,3 +217,50 @@ def test_ingest_source_with_updated_data(
 
     # Check the URI has been replaced, not added to
     assert len(p.uris.all()) == 1
+
+
+@pytest.fixture
+def statement1_data():
+    data = {
+        "@id": "St1-John-Smith-Name",
+        "places": [
+            {
+                "uri": "http://places.com/Gibraltar",
+                "label": "Gibraltar",
+            },
+        ],
+        "createdBy": "Researcher1",
+        "createdWhen": "2022-03-25",
+        "modifiedBy": "Researcher1",
+        "modifiedWhen": "2022-03-25",
+        "label": "John Smith is called John Smith",
+        "statementType": {
+            "uri": "http://vocabs.com/hasName",
+            "label": "Has Name",
+        },
+        "name": "John Smith",
+    }
+
+    return data
+
+
+@pytest.mark.django_db(transaction=True)
+def test_statement_ingestion_with_valid_data(repo: IpifRepo, statement1_data: dict):
+    ingest_statement(statement1_data, repo)
+
+    st: Statement = Statement.objects.get(
+        pk="http://test.com/statements/St1-John-Smith-Name"
+    )
+    assert st.local_id == "St1-John-Smith-Name"
+    assert st.label == "John Smith is called John Smith"
+    assert st.createdBy == "Researcher1"
+    assert st.createdWhen == datetime.date(2022, 3, 25)
+    assert st.modifiedBy == "Researcher1"
+    assert st.modifiedWhen == datetime.date(2022, 3, 25)
+    assert st.places.first().uri == "http://places.com/Gibraltar"
+    assert st.name == "John Smith"
+    assert st.statementType_uri == "http://vocabs.com/hasName"
+    assert st.statementType_label == "Has Name"
+
+
+# TODO: test nonvalid and update of Statements...
