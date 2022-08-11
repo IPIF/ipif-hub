@@ -114,6 +114,17 @@ class AlreadyJSONRenderer(renderers.BaseRenderer):
         return data
 
 
+NOT_URI_RESPONSE = Response(
+    status=400,
+    data={
+        "detail": (
+            "Either query a specific dataset using"
+            " the dataset-specific route, or provide a full URI as identifier"
+        )
+    },
+)
+
+
 def list_view(object_class):
     """
 
@@ -208,16 +219,25 @@ def list_view(object_class):
             q &= Q(ipif_repo__endpoint_slug=repo)
 
         if param := request.query_params.get("factoidId"):
-            q &= Q(**qd("id", param))
+            # If no repository is specified, the pk needs to be a URI
+            if repo == None and not is_uri(param):
+                return NOT_URI_RESPONSE
+            q &= Q(**qd("id", param)) | Q(**qd("local_id", param))
 
         if param := request.query_params.get("statementId"):
-            q &= Q(**qd("statement__id", param))
+            if repo == None and not is_uri(param):
+                return NOT_URI_RESPONSE
+            q &= Q(**qd("statement__id", param)) | Q(**qd("statement__local_id", param))
 
         if param := request.query_params.get("sourceId"):
-            q &= Q(**qd("source__id", param))
+            if repo == None and not is_uri(param):
+                return NOT_URI_RESPONSE
+            q &= Q(**qd("source__id", param)) | Q(**qd("source__local_id", param))
 
         if param := request.query_params.get("personId"):
-            q &= Q(**qd("person__id", param))
+            if repo == None and not is_uri(param):
+                return NOT_URI_RESPONSE
+            q &= Q(**qd("person__id", param)) | Q(**qd("person__local_id", param))
 
         # Now create queryset with previously defined q object and add statement filters
         queryset = object_class.objects.filter(q)
@@ -327,15 +347,6 @@ def retrieve_view(object_class):
             return Response(status=404)
 
     return inner
-
-
-from rest_framework.pagination import PageNumberPagination
-
-
-class StandardResultsSetPagination(PageNumberPagination):
-    page_size = 1
-    page_size_query_param = "page_size"
-    max_page_size = 1000
 
 
 def build_viewset(object_class) -> viewsets.ViewSet:

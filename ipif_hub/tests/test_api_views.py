@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.test import APIRequestFactory
 from rest_framework import viewsets
 
+
 from ipif_hub.api_views import (
     FactoidViewSet,
     SourceViewSet,
@@ -28,7 +29,15 @@ from ipif_hub.serializers import (
     SourceSerializer,
     StatementSerializer,
 )
-from ipif_hub.tests.conftest import factoid, person, source, statement, person2
+from ipif_hub.tests.conftest import (
+    factoid,
+    person,
+    source,
+    statement,
+    person2,
+    statement2,
+    factoid2,
+)
 
 
 def build_request_with_params(**params) -> Request:
@@ -339,7 +348,7 @@ def test_list_view_with_id_query_params(person, factoid, statement):
     assert response.data == [PersonSerializer(person).data]
 
     # Now try it matching nothing to make sure the filter works
-    req = build_request_with_params(statementId="MATCHES_NOTHING")
+    req = build_request_with_params(statementId="http://nomatch.com/statement")
     with assertNumQueries(1):
         response = vs.list(request=req)
     assert response.status_code == 200
@@ -354,7 +363,7 @@ def test_list_view_with_id_query_params(person, factoid, statement):
 
     # Now try it matching nothing to make sure the filter works
     vs = StatementViewSet()
-    req = build_request_with_params(personId="MATCHES_NOTHING")
+    req = build_request_with_params(personId="http://nomatch.com/person")
     with assertNumQueries(1):
         response = vs.list(request=req)
     assert response.status_code == 200
@@ -369,7 +378,7 @@ def test_list_view_with_id_query_params(person, factoid, statement):
 
     # Now try it matching nothing to make sure the filter works
     vs = StatementViewSet()
-    req = build_request_with_params(factoidId="MATCHES_NOTHING")
+    req = build_request_with_params(factoidId="http://nomatch.com/factoid")
     with assertNumQueries(1):
         response = vs.list(request=req)
     assert response.status_code == 200
@@ -384,9 +393,207 @@ def test_list_view_with_id_query_params(person, factoid, statement):
 
     # Now try it matching nothing to make sure the filter works
     vs = StatementViewSet()
-    req = build_request_with_params(sourceId="MATCHES_NOTHING")
+    req = build_request_with_params(sourceId="http://nomatch.com/source")
 
     with assertNumQueries(1):
         response = vs.list(request=req)
     assert response.status_code == 200
     assert response.data == []
+
+
+@pytest.mark.django_db(transaction=True)
+def test_list_view_with_id_params_works_with_local_id_and_repo(factoid, person):
+    vs = PersonViewSet()
+
+    req = build_request_with_params(statementId="statement1")
+    response = vs.list(request=req, repo="testrepo")
+    assert response.status_code == 200
+    assert response.data == [PersonSerializer(person).data]
+
+    req = build_request_with_params(sourceId="source1")
+    response = vs.list(request=req, repo="testrepo")
+    assert response.status_code == 200
+    assert response.data == [PersonSerializer(person).data]
+
+    req = build_request_with_params(factoidId="factoid1")
+    response = vs.list(request=req, repo="testrepo")
+    assert response.status_code == 200
+    assert response.data == [PersonSerializer(person).data]
+
+    req = build_request_with_params(personId="person1")
+    response = vs.list(request=req, repo="testrepo")
+    assert response.status_code == 200
+    assert response.data == [PersonSerializer(person).data]
+
+
+@pytest.mark.django_db(transaction=True)
+def test_list_view_with_id_params_raises_error_when_id_and_no_repo(factoid, person):
+    vs = PersonViewSet()
+
+    req = build_request_with_params(sourceId="source1")
+    response = vs.list(request=req)
+    assert response.status_code == 400
+
+    req = build_request_with_params(sourceId="source1")
+    response = vs.list(request=req, repo="testrepo")
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db(transaction=True)
+def test_list_view_statement_params_on_statement(
+    factoid,
+    factoid2,
+    statement,
+    statement2,
+):
+    vs = StatementViewSet()
+
+    # Quick sanity test that we get both statements
+    req = build_request_with_params(orderBy="statementId")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 2
+    assert response.data == [
+        StatementSerializer(statement).data,
+        StatementSerializer(statement2).data,
+    ]
+
+    req = build_request_with_params(name="John Smith")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data == [
+        StatementSerializer(statement).data,
+    ]
+
+    req = build_request_with_params(name="Johannes Schmitt")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data == [
+        StatementSerializer(statement2).data,
+    ]
+
+
+@pytest.mark.django_db(transaction=True)
+def test_list_view_statement_params_on_person_match_all(
+    factoid, factoid2, statement, statement2, person
+):
+    vs = PersonViewSet()
+
+    # Sanity check does match with real match
+    req = build_request_with_params(role="unemployed")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data == [PersonSerializer(person).data]
+
+    # Sanity check does not match
+    req = build_request_with_params(role="DOES_NOT_MATCH")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 0
+    assert response.data == []
+
+    # Ok, real test now
+    # This is the default —— all apply to same statement, hence this should
+    # return nothing
+    req = build_request_with_params(role="unemployed", name="Johannes Schmitt")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 0
+    assert response.data == []
+
+    # Now, with independentStatements="matchAll", it should match both params,
+    # but they can be part of separate statements
+    req = build_request_with_params(
+        role="unemployed", name="Johannes Schmitt", independentStatements="matchAll"
+    )
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data == [PersonSerializer(person).data]
+
+    # Now this one should fail as *both* params need to match at least one
+    # related Statement
+    req = build_request_with_params(
+        role="DOES_NOT_MATCH", name="Johannes Schmitt", independentStatements="matchAll"
+    )
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 0
+    assert response.data == []
+
+    # Finally, this one should pass as only one of the params needs to match a statement
+    req = build_request_with_params(
+        role="DOES_NOT_MATCH", name="Johannes Schmitt", independentStatements="matchAny"
+    )
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data == [PersonSerializer(person).data]
+
+
+@pytest.mark.django_db(transaction=True)
+def test_params_query_correctly(factoid, statement, person):
+    vs = PersonViewSet()
+
+    req = build_request_with_params(_from=1800, to=1899)
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 0
+    assert response.data == []
+
+    req = build_request_with_params(_from=1899, to=1999)
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data == [PersonSerializer(person).data]
+
+    req = build_request_with_params(statementText="DOES_NOT_MATCH")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 0
+    assert response.data == []
+
+    req = build_request_with_params(statementText="Member")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data == [PersonSerializer(person).data]
+
+    req = build_request_with_params(role="DOES_NOT_MATCH")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 0
+    assert response.data == []
+
+    req = build_request_with_params(role="unemployed")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data == [PersonSerializer(person).data]
+
+    req = build_request_with_params(place="DOES_NOT_MATCH")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 0
+    assert response.data == []
+
+    req = build_request_with_params(place="Nowhere")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data == [PersonSerializer(person).data]
+
+    req = build_request_with_params(memberOf="DOES_NOT_MATCH")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 0
+    assert response.data == []
+
+    req = build_request_with_params(memberOf="http://orgs.com/madeup")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data == [PersonSerializer(person).data]

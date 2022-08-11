@@ -132,6 +132,23 @@ def statement(repo):
 
 
 @pytest.fixture
+@pytest.mark.django_db
+def statement2(repo):
+    st = Statement(
+        local_id="statement2",
+        label="Statement Two",
+        ipif_repo=repo,
+        **created_modified,
+        statementType_uri="http://namingStatement",
+        statementType_label="naming",
+        name="Johannes Schmitt",
+    )
+
+    st.save()
+    yield st
+
+
+@pytest.fixture
 @pytest.mark.django_db(transaction=True)
 def factoid(repo, person, source, statement):
     f = Factoid(
@@ -141,5 +158,19 @@ def factoid(repo, person, source, statement):
     f.source = source
     f.save()
     f.statement.add(statement)
+    f.save()
+    yield f
+
+
+@pytest.fixture
+@pytest.mark.django_db(transaction=True)
+def factoid2(repo, person, source, statement2):
+    f = Factoid(
+        local_id="factoid2", label="Factoid Two", ipif_repo=repo, **created_modified
+    )
+    f.person = person
+    f.source = source
+    f.save()
+    f.statement.add(statement2)
     f.save()
     yield f
