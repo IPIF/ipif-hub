@@ -225,6 +225,7 @@ def ingest_statement(data, ipif_repo):
 
 
 def ingest_person_or_source(entity_class, data, ipif_repo):
+    print("DATA", data)
     try:
         validate(data, schema=PERSON_SOURCE_SCHEMA)
     except Exception as e:
