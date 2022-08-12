@@ -83,6 +83,9 @@ def ingest_statement(data, ipif_repo):
             statement.modifiedWhen = data["modifiedWhen"]
             statement.inputContentHash = input_content_hash
 
+            if name := data.get("name"):
+                statement.name = name
+
             if date := data.get("date"):
                 statement.date_label = date.get("label", None)
                 statement.date_sortdate = date.get("sortdate", None)

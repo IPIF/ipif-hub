@@ -1,10 +1,13 @@
 from copy import deepcopy
 import datetime
+from typing import Dict
 import pytest
 
-from ipif_hub.models import IpifRepo, Person, Source, URI, Statement
+from ipif_hub.models import Factoid, IpifRepo, Person, Source, URI, Statement
 from ipif_hub.management.utils.ingest_data import (
     DataFormatError,
+    DataIntegrityError,
+    ingest_factoid,
     ingest_person_or_source,
     ingest_statement,
 )
@@ -244,6 +247,30 @@ def statement1_data():
     return data
 
 
+@pytest.fixture
+def statement1_data_error():
+    data = {
+        "places": [
+            {
+                "uri": "http://places.com/Gibraltar",
+                "label": "Gibraltar",
+            },
+        ],
+        "createdBy": "Researcher1",
+        "createdWhen": "2022-03-25",
+        "modifiedBy": "Researcher1",
+        "modifiedWhen": "2022-03-25",
+        "label": "John Smith is called John Smith",
+        "statementType": {
+            "uri": "http://vocabs.com/hasName",
+            "label": "Has Name",
+        },
+        "name": "John Smith",
+    }
+
+    return data
+
+
 @pytest.mark.django_db(transaction=True)
 def test_statement_ingestion_with_valid_data(repo: IpifRepo, statement1_data: dict):
     ingest_statement(statement1_data, repo)
@@ -263,4 +290,152 @@ def test_statement_ingestion_with_valid_data(repo: IpifRepo, statement1_data: di
     assert st.statementType_label == "Has Name"
 
 
-# TODO: test nonvalid and update of Statements...
+@pytest.mark.django_db(transaction=True)
+def test_statement_ingestion_with_invalid_data(
+    repo: IpifRepo, statement1_data_error: dict
+):
+
+    with pytest.raises(DataFormatError) as e:
+        ingest_statement(statement1_data_error, repo)
+    assert "'@id' is a required property" in str(e.value)
+
+
+@pytest.fixture
+def statement1_data_update():
+    data = {
+        "@id": "St1-John-Smith-Name",
+        "places": [
+            {
+                "uri": "http://places.com/France",
+                "label": "France",
+            },
+        ],
+        "createdBy": "Researcher1",
+        "createdWhen": "2022-03-25",
+        "modifiedBy": "Researcher2",
+        "modifiedWhen": "2022-04-25",
+        "label": "John Smith is called John Smuth",
+        "statementType": {
+            "uri": "http://vocabs.com/hasName",
+            "label": "Has Name",
+        },
+        "name": "John Smuth",
+    }
+
+    return data
+
+
+@pytest.mark.django_db(transaction=True)
+def test_statement_ingestion_with_updated_data(
+    repo: IpifRepo, statement1_data: dict, statement1_data_update: dict
+):
+    ingest_statement(statement1_data, repo)
+
+    ingest_statement(statement1_data_update, repo)
+
+    st: Statement = Statement.objects.get(
+        pk="http://test.com/statements/St1-John-Smith-Name"
+    )
+    assert st.local_id == "St1-John-Smith-Name"
+    assert st.label == "John Smith is called John Smuth"
+    assert st.createdBy == "Researcher1"
+    assert st.createdWhen == datetime.date(2022, 3, 25)
+    assert st.modifiedBy == "Researcher2"
+    assert st.modifiedWhen == datetime.date(2022, 4, 25)
+    assert st.places.first().uri == "http://places.com/France"
+    assert st.name == "John Smuth"
+    assert st.statementType_uri == "http://vocabs.com/hasName"
+    assert st.statementType_label == "Has Name"
+
+
+@pytest.fixture
+def factoid1_data():
+    data = {
+        "@id": "Factoid1",
+        "person-ref": {"@id": "Person1"},
+        "source-ref": {"@id": "Source1"},
+        "statement-refs": [
+            {"@id": "St1-John-Smith-Name"},
+        ],
+        "createdBy": "Researcher1",
+        "createdWhen": "2012-04-23",
+        "modifiedBy": "Researcher1",
+        "modifiedWhen": "2012-04-23",
+    }
+    return data
+
+
+@pytest.mark.django_db
+def test_ingest_factoid_with_valid_data_and_refs_already_created(
+    repo: IpifRepo,
+    factoid1_data: dict,
+    person1_data: dict,
+    source1_data: dict,
+    statement1_data: dict,
+):
+    ingest_person_or_source(Person, person1_data, repo)
+    ingest_person_or_source(Source, source1_data, repo)
+    ingest_statement(statement1_data, repo)
+    ingest_factoid(factoid1_data, repo)
+
+    f: Factoid = Factoid.objects.get(pk="http://test.com/factoids/Factoid1")
+    assert f.local_id == "Factoid1"
+    assert f.createdBy == "Researcher1"
+    assert f.createdWhen == datetime.date(2012, 4, 23)
+    assert f.modifiedBy == "Researcher1"
+    assert f.modifiedWhen == datetime.date(2012, 4, 23)
+
+    assert f.person == Person.objects.get(pk="http://test.com/persons/Person1")
+    assert f.source == Source.objects.get(pk="http://test.com/sources/Source1")
+    assert (
+        Statement.objects.get(pk="http://test.com/statements/St1-John-Smith-Name")
+        in f.statement.all()
+    )
+
+
+@pytest.mark.django_db
+def test_ingest_factoid_fails_with_missing_person_ref(
+    repo: IpifRepo,
+    factoid1_data: dict,
+    person1_data: dict,
+    source1_data: dict,
+    statement1_data: dict,
+):
+    # ingest_person_or_source(Person, person1_data, repo)
+    ingest_person_or_source(Source, source1_data, repo)
+    ingest_statement(statement1_data, repo)
+
+    with pytest.raises(DataIntegrityError) as e:
+        ingest_factoid(factoid1_data, repo)
+
+
+@pytest.mark.django_db
+def test_ingest_factoid_fails_with_missing_source_ref(
+    repo: IpifRepo,
+    factoid1_data: dict,
+    person1_data: dict,
+    source1_data: dict,
+    statement1_data: dict,
+):
+    # ingest_person_or_source(Person, person1_data, repo)
+    ingest_person_or_source(Source, source1_data, repo)
+    # ingest_statement(statement1_data, repo)
+
+    with pytest.raises(DataIntegrityError) as e:
+        ingest_factoid(factoid1_data, repo)
+
+
+@pytest.mark.django_db
+def test_ingest_factoid_fails_with_missing_statement_ref(
+    repo: IpifRepo,
+    factoid1_data: dict,
+    person1_data: dict,
+    source1_data: dict,
+    statement1_data: dict,
+):
+    ingest_person_or_source(Person, person1_data, repo)
+    ingest_person_or_source(Source, source1_data, repo)
+    # ingest_statement(statement1_data, repo)
+
+    with pytest.raises(DataIntegrityError) as e:
+        ingest_factoid(factoid1_data, repo)
