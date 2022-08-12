@@ -73,7 +73,7 @@ def person1_data_error():
     return data
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db
 def test_ingest_person_with_valid_data(repo: IpifRepo, person1_data: dict):
     ingest_person_or_source(Person, person1_data, repo)
 
@@ -87,7 +87,7 @@ def test_ingest_person_with_valid_data(repo: IpifRepo, person1_data: dict):
     assert p.modifiedWhen == datetime.date(2012, 4, 23)
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db
 def test_ingest_person_with_same_data_returns_no_change(
     repo: IpifRepo,
     person1_data: dict,
@@ -100,7 +100,7 @@ def test_ingest_person_with_same_data_returns_no_change(
     )
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db
 def test_ingest_person_with_invalid_data(repo: IpifRepo, person1_data_error):
 
     with pytest.raises(DataFormatError) as e:
@@ -108,7 +108,7 @@ def test_ingest_person_with_invalid_data(repo: IpifRepo, person1_data_error):
     assert "'@id' is a required property" in str(e.value)
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db
 def test_ingest_person_with_updated_data(
     repo: IpifRepo,
     person1_data: dict,
@@ -193,7 +193,7 @@ def source1_data_error():
     return data
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db
 def test_ingest_source_with_valid_data(repo: IpifRepo, source1_data: dict):
     ingest_person_or_source(Source, source1_data, repo)
 
@@ -207,7 +207,7 @@ def test_ingest_source_with_valid_data(repo: IpifRepo, source1_data: dict):
     assert p.modifiedWhen == datetime.date(2012, 4, 23)
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db
 def test_ingest_source_with_same_data_returns_no_change(
     repo: IpifRepo,
     source1_data: dict,
@@ -220,7 +220,7 @@ def test_ingest_source_with_same_data_returns_no_change(
     )
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db
 def test_ingest_source_with_invalid_data(repo: IpifRepo, source1_data_error):
 
     with pytest.raises(DataFormatError) as e:
@@ -228,7 +228,7 @@ def test_ingest_source_with_invalid_data(repo: IpifRepo, source1_data_error):
     assert "'@id' is a required property" in str(e.value)
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db
 def test_ingest_source_with_updated_data(
     repo: IpifRepo,
     source1_data: dict,
@@ -315,7 +315,7 @@ def statement1_data_error():
     return data
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db
 def test_statement_ingestion_with_valid_data(repo: IpifRepo, statement1_data: dict):
     ingest_statement(statement1_data, repo)
 
@@ -334,7 +334,7 @@ def test_statement_ingestion_with_valid_data(repo: IpifRepo, statement1_data: di
     assert st.statementType_label == "Has Name"
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db
 def test_ingest_statement_with_same_data_returns_no_change(
     repo: IpifRepo,
     statement1_data: dict,
@@ -344,7 +344,7 @@ def test_ingest_statement_with_same_data_returns_no_change(
     assert ingest_statement(statement1_data_duplicate, repo) == NO_CHANGE_TO_DATA
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db
 def test_statement_ingestion_with_invalid_data(
     repo: IpifRepo, statement1_data_error: dict
 ):
@@ -379,7 +379,7 @@ def statement1_data_update():
     return data
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db
 def test_statement_ingestion_with_updated_data(
     repo: IpifRepo, statement1_data: dict, statement1_data_update: dict
 ):
@@ -450,7 +450,7 @@ def test_ingest_factoid_with_valid_data_and_refs_already_created(
     )
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db
 def test_ingest_factoid_with_same_data_returns_no_change(
     repo: IpifRepo,
     factoid1_data: dict,
