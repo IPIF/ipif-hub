@@ -35,6 +35,9 @@ class DataIntegrityError(Exception):
     pass
 
 
+NO_CHANGE_TO_DATA = "NO CHANGE TO DATA"
+
+
 def hash_content(data):
     content_as_json = json.dumps(data, sort_keys=True, ensure_ascii=True, default=str)
 
@@ -70,7 +73,7 @@ def ingest_statement(data, ipif_repo):
         # Hash new content to see if different; if not, do not return
         if statement.inputContentHash == input_content_hash:
             print(f'No change to <Statement @id="{qid}">; skipping ingest.')
-            return
+            return NO_CHANGE_TO_DATA
         else:
             print(f"Ingesting <Statement @id={qid}>")
 
@@ -254,7 +257,7 @@ def ingest_person_or_source(entity_class, data, ipif_repo):
             print(
                 f'No change to <{entity_class.__name__} @id="{qid}">; skipping ingest.'
             )
-            return
+            return NO_CHANGE_TO_DATA
         else:
             print(f"Ingesting <{entity_class.__name__} @id={qid}>")
 
@@ -319,7 +322,7 @@ def ingest_factoid(data, ipif_repo):
 
         if factoid.inputContentHash == input_content_hash:
             print(f'No change to <Factoid @id="{qid}">; skipping ingest.')
-            return
+            return NO_CHANGE_TO_DATA
         else:
             print(f"Updating <Factoid @id={qid}>")
 

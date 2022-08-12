@@ -3,16 +3,25 @@ import datetime
 from typing import Dict
 import pytest
 
-from ipif_hub.models import Factoid, IpifRepo, Person, Source, URI, Statement
+from ipif_hub.models import (
+    Factoid,
+    IpifRepo,
+    Person,
+    Source,
+    URI,
+    Statement,
+    get_ipif_hub_repo_AUTOCREATED_instance,
+)
 from ipif_hub.management.utils.ingest_data import (
     DataFormatError,
     DataIntegrityError,
     ingest_factoid,
     ingest_person_or_source,
     ingest_statement,
+    NO_CHANGE_TO_DATA,
 )
 
-from ipif_hub.tests.conftest import repo
+from ipif_hub.tests.conftest import factoid, repo
 
 """
 TEST PERSON INGESTION
@@ -31,6 +40,9 @@ def person1_data():
         "modifiedWhen": "2012-04-23",
     }
     return data
+
+
+person1_data_duplicate = person1_data
 
 
 @pytest.fixture
@@ -73,6 +85,19 @@ def test_ingest_person_with_valid_data(repo: IpifRepo, person1_data: dict):
     assert p.createdWhen == datetime.date(2012, 4, 23)
     assert p.modifiedBy == "Researcher1"
     assert p.modifiedWhen == datetime.date(2012, 4, 23)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_ingest_person_with_same_data_returns_no_change(
+    repo: IpifRepo,
+    person1_data: dict,
+    person1_data_duplicate,
+):
+    ingest_person_or_source(Person, person1_data, repo)
+    assert (
+        ingest_person_or_source(Person, person1_data_duplicate, repo)
+        == NO_CHANGE_TO_DATA
+    )
 
 
 @pytest.mark.django_db(transaction=True)
@@ -137,6 +162,9 @@ def source1_data():
     return data
 
 
+source1_data_duplicate = source1_data
+
+
 @pytest.fixture
 def source1_data_update():
     data = {
@@ -177,6 +205,19 @@ def test_ingest_source_with_valid_data(repo: IpifRepo, source1_data: dict):
     assert p.createdWhen == datetime.date(2012, 4, 23)
     assert p.modifiedBy == "Researcher1"
     assert p.modifiedWhen == datetime.date(2012, 4, 23)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_ingest_source_with_same_data_returns_no_change(
+    repo: IpifRepo,
+    source1_data: dict,
+    source1_data_duplicate,
+):
+    ingest_person_or_source(Source, source1_data, repo)
+    assert (
+        ingest_person_or_source(Source, source1_data_duplicate, repo)
+        == NO_CHANGE_TO_DATA
+    )
 
 
 @pytest.mark.django_db(transaction=True)
@@ -247,6 +288,9 @@ def statement1_data():
     return data
 
 
+statement1_data_duplicate = statement1_data
+
+
 @pytest.fixture
 def statement1_data_error():
     data = {
@@ -288,6 +332,16 @@ def test_statement_ingestion_with_valid_data(repo: IpifRepo, statement1_data: di
     assert st.name == "John Smith"
     assert st.statementType_uri == "http://vocabs.com/hasName"
     assert st.statementType_label == "Has Name"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_ingest_statement_with_same_data_returns_no_change(
+    repo: IpifRepo,
+    statement1_data: dict,
+    statement1_data_duplicate,
+):
+    ingest_statement(statement1_data, repo)
+    assert ingest_statement(statement1_data_duplicate, repo) == NO_CHANGE_TO_DATA
 
 
 @pytest.mark.django_db(transaction=True)
@@ -365,6 +419,9 @@ def factoid1_data():
     return data
 
 
+factoid1_data_duplicate = factoid1_data
+
+
 @pytest.mark.django_db
 def test_ingest_factoid_with_valid_data_and_refs_already_created(
     repo: IpifRepo,
@@ -391,6 +448,23 @@ def test_ingest_factoid_with_valid_data_and_refs_already_created(
         Statement.objects.get(pk="http://test.com/statements/St1-John-Smith-Name")
         in f.statement.all()
     )
+
+
+@pytest.mark.django_db(transaction=True)
+def test_ingest_factoid_with_same_data_returns_no_change(
+    repo: IpifRepo,
+    factoid1_data: dict,
+    factoid1_data_duplicate: dict,
+    person1_data: dict,
+    source1_data: dict,
+    statement1_data: dict,
+):
+    ingest_person_or_source(Person, person1_data, repo)
+    ingest_person_or_source(Source, source1_data, repo)
+    ingest_statement(statement1_data, repo)
+    ingest_factoid(factoid1_data, repo)
+
+    assert ingest_factoid(factoid1_data_duplicate, repo) == NO_CHANGE_TO_DATA
 
 
 @pytest.mark.django_db
@@ -439,3 +513,116 @@ def test_ingest_factoid_fails_with_missing_statement_ref(
 
     with pytest.raises(DataIntegrityError) as e:
         ingest_factoid(factoid1_data, repo)
+
+
+@pytest.fixture
+def factoid1_data_update():
+    data = {
+        "@id": "Factoid1",
+        "person-ref": {"@id": "Person1"},
+        "source-ref": {"@id": "Source1"},
+        "statement-refs": [
+            {"@id": "St1-John-Smith-Name"},
+            {"@id": "St2-jsmith-teacher"},
+        ],
+        "createdBy": "Researcher1",
+        "createdWhen": "2012-04-23",
+        "modifiedBy": "Researcher2",
+        "modifiedWhen": "2012-04-24",
+    }
+    return data
+
+
+@pytest.fixture
+def factoid1_data_error():
+    data = {
+        "person-ref": {"@id": "Person1"},
+        "source-ref": {"@id": "Source1"},
+        "statement-refs": [
+            {"@id": "St1-John-Smith-Name"},
+            {"@id": "St2-jsmith-teacher"},
+        ],
+        "createdBy": "Researcher1",
+        "createdWhen": "2012-04-23",
+        "modifiedBy": "Researcher2",
+        "modifiedWhen": "2012-04-24",
+    }
+    return data
+
+
+@pytest.mark.django_db
+def test_ingest_factoid_fails_with_missing_statement_ref(
+    repo: IpifRepo,
+    factoid1_data_error: dict,
+    person1_data: dict,
+    source1_data: dict,
+    statement1_data: dict,
+):
+    ingest_person_or_source(Person, person1_data, repo)
+    ingest_person_or_source(Source, source1_data, repo)
+    ingest_statement(statement1_data, repo)
+
+    with pytest.raises(DataFormatError) as e:
+        ingest_factoid(factoid1_data_error, repo)
+
+
+@pytest.fixture
+def statement2_data():
+    data = {
+        "@id": "St2-jsmith-teacher",
+        "places": [{"uri": "http://places.com/Germany", "label": "Germany"}],
+        "createdBy": "RHadden",
+        "createdWhen": "2022-03-25",
+        "modifiedBy": "RHadden",
+        "modifiedWhen": "2022-03-25",
+        "label": "",
+        "role": {"label": "teachery", "uri": "http://jobs.com/teacher"},
+        "relatesToPerson": [
+            {"uri": "http://persons.com/mrsSpenceley", "label": "Mrs Spenceley"}
+        ],
+    }
+    return data
+
+
+@pytest.mark.django_db
+def test_ingest_factoid_with_updated_data(
+    repo: IpifRepo,
+    factoid1_data: dict,
+    person1_data: dict,
+    source1_data: dict,
+    statement1_data: dict,
+    factoid1_data_update: dict,
+    statement2_data: dict,
+):
+    AUTOCREATED = get_ipif_hub_repo_AUTOCREATED_instance()
+
+    ingest_person_or_source(Person, person1_data, repo)
+    ingest_person_or_source(Source, source1_data, repo)
+    ingest_statement(statement1_data, repo)
+
+    ingest_factoid(factoid1_data, repo)
+
+    ingest_statement(statement2_data, repo)
+
+    ingest_factoid(factoid1_data_update, repo)
+
+    f: Factoid = Factoid.objects.get(pk="http://test.com/factoids/Factoid1")
+    assert f.local_id == "Factoid1"
+    assert f.createdBy == "Researcher1"
+    assert f.createdWhen == datetime.date(2012, 4, 23)
+    assert f.modifiedBy == "Researcher2"
+    assert f.modifiedWhen == datetime.date(2012, 4, 24)
+
+    assert f.person == Person.objects.get(pk="http://test.com/persons/Person1")
+    assert f.source == Source.objects.get(pk="http://test.com/sources/Source1")
+    assert (
+        Statement.objects.get(pk="http://test.com/statements/St1-John-Smith-Name")
+        in f.statement.all()
+    )
+    assert (
+        Statement.objects.get(pk="http://test.com/statements/St2-jsmith-teacher")
+        in f.statement.all()
+    )
+
+    p: Person = Person.objects.get(pk="http://persons.com/mrsSpenceley")
+    assert p.ipif_repo == AUTOCREATED
