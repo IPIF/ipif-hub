@@ -18,6 +18,7 @@ from ipif_hub.management.utils.ingest_data import (
     ingest_factoid,
     ingest_person_or_source,
     ingest_statement,
+    ingest_data,
     NO_CHANGE_TO_DATA,
 )
 
@@ -626,3 +627,20 @@ def test_ingest_factoid_with_updated_data(
 
     p: Person = Person.objects.get(pk="http://persons.com/mrsSpenceley")
     assert p.ipif_repo == AUTOCREATED
+
+
+@pytest.mark.django_db
+def test_data_ingestion_function(
+    factoid1_data: dict,
+    person1_data: dict,
+    source1_data: dict,
+    statement1_data: dict,
+    repo,
+):
+    data = {
+        "factoids": [factoid1_data],
+        "persons": [person1_data],
+        "sources": [source1_data],
+        "statements": [statement1_data],
+    }
+    ingest_data("testrepo", data)

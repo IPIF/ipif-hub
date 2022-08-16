@@ -472,6 +472,8 @@ def ingest_data(endpoint_slug, data):
 
     ipif_repo = IpifRepo.objects.get(pk=endpoint_slug)
 
+    # TODO: missing key is not necessarily a problem —— could be
+    # pushed in batches!!
     try:
         ingest_persons(data["persons"], ipif_repo)
     except KeyError:
