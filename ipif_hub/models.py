@@ -10,13 +10,15 @@ from django.contrib.auth.base_user import AbstractBaseUser
 class IpifEntityAbstractBase(models.Model):
     class Meta:
         abstract = True
-        unique_together = [["local_id", "ipif_repo"]]
+        unique_together = [["local_id", "ipif_repo", "identifier"]]
 
     # This setting id like this is a HACK (?)
     # Idea being, user provides a local id, which we make global by prefixing the repo id
     # then save this as PK —— see the save() method below
-    id = models.URLField(
-        primary_key=True, default="http://noneset.com", editable=False, db_index=True
+    id = models.AutoField(primary_key=True)
+
+    identifier = models.URLField(
+        default="http://noneset.com", editable=False, db_index=True
     )
 
     local_id = models.CharField(max_length=50, blank=True)
@@ -56,8 +58,8 @@ class IpifEntityAbstractBase(models.Model):
         return f"{url}/{entity_type}/{id}"
 
     def save(self, *args, **kwargs):
-        if not self.id or self.id == "http://noneset.com":
-            self.id = self.build_uri_id_from_slug(self.local_id)
+        if not self.identifier or self.identifier == "http://noneset.com":
+            self.identifier = self.build_uri_id_from_slug(self.local_id)
         super().save(*args, **kwargs)
 
 
@@ -75,7 +77,7 @@ class Factoid(IpifEntityAbstractBase):
         related_query_name="factoids",
         related_name="factoids",
     )
-    statement = models.ManyToManyField(
+    statements = models.ManyToManyField(
         "Statement",
         verbose_name="statements",
         related_query_name="factoids",

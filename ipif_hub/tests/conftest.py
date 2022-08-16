@@ -58,6 +58,22 @@ def repo():
 
 @pytest.fixture
 @pytest.mark.django_db(transaction=True)
+def uri():
+    uri = URI(uri="http://person_uri.com/person1")
+    uri.save()
+    return uri
+
+
+@pytest.fixture
+@pytest.mark.django_db(transaction=True)
+def place():
+    place = Place(uri="http://places.com/place1", label="place1")
+    place.save()
+    return place
+
+
+@pytest.fixture
+@pytest.mark.django_db(transaction=True)
 def person(repo):
     p = Person(
         local_id="person1", label="Person One", ipif_repo=repo, **created_modified
@@ -157,7 +173,7 @@ def factoid(repo, person, source, statement):
     f.person = person
     f.source = source
     f.save()
-    f.statement.add(statement)
+    f.statements.add(statement)
     f.save()
     yield f
 

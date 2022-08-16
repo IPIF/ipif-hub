@@ -20,7 +20,7 @@ from ipif_hub.management.utils.ingest_data import ingest_data
 
 logger = get_task_logger(__name__)
 
-
+'''
 @shared_task
 def update_factoid_index(instance_pk):
     logger.debug(msg=instance_pk)
@@ -113,3 +113,4 @@ def ingest_json_data_task(repo_id, data, job_id=None):
         from_email="ipif@hub.com",
     )
     """
+'''

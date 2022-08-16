@@ -5,13 +5,14 @@ from re import L
 
 from haystack import indexes
 
+"""
 from ipif_hub.serializers import (
     FactoidSerializer,
     PersonSerializer,
     SourceSerializer,
     StatementSerializer,
 )
-
+"""
 from .models import Person, Source, Factoid, Statement
 
 
@@ -50,9 +51,10 @@ place
 """
 SORT_LAST = "ZZZZZZZZ"
 SORT_DATE_LAST = datetime.datetime(2060, 1, 1)
-
+'''
 
 class BaseIndex(indexes.SearchIndex):
+    identifier = indexes.CharField(model_attr="identifier")
     local_id = indexes.CharField(model_attr="local_id")
     ipif_repo_id = indexes.CharField()
     ipif_repo_slug = indexes.CharField()
@@ -355,3 +357,4 @@ def searchQuerySet_to_querySet(sinst):
     if sinst_objects:
         model = sinst_objects[0].model
         return model.objects.filter(pk__in=[r.pk for r in sinst_objects])
+'''

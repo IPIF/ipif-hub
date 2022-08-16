@@ -10,19 +10,45 @@ from ipif_hub.serializers import (
     SourceSerializer,
     StatementSerializer,
     FactoidSerializer,
+    GenericRefSerializer,
+    PlaceSerializer,
+    URISerlializer,
 )
 
-from ipif_hub.tests.conftest import person, source, statement, factoid, created_modified
+
+from ipif_hub.tests.conftest import (
+    person,
+    source,
+    statement,
+    factoid,
+    created_modified,
+    uri,
+    place,
+)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
+def test_uri_serializer(uri):
+    assert URISerlializer(uri).data == {"uri": "http://person_uri.com/person1"}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_place_serializer(place):
+    assert PlaceSerializer(place).data == {
+        "uri": "http://places.com/place1",
+        "label": "place1",
+    }
+
+
+@pytest.mark.django_db(transaction=True)
 def test_person_ref_serializer(person):
-    serialized_data = PersonRefSerializer(person).data
-    assert serialized_data.get("@id") == "http://test.com/persons/person1"
-    assert serialized_data.get("label") == "Person One"
+    assert PersonRefSerializer(person).data == {
+        "@id": "http://test.com/persons/person1",
+        "label": "Person One",
+    }
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_source_ref_serializer(source):
     serialized_data = SourceRefSerializer(source).data
     assert serialized_data.get("@id") == "http://test.com/sources/source1"
@@ -39,8 +65,15 @@ def test_statetment_ref_serializer(statement):
 @pytest.mark.django_db(transaction=True)
 def test_factoid_ref_serializer(factoid, person, statement, source):
     serialized_data = FactoidRefSerializer(factoid).data
-    assert serialized_data.get("@id") == "http://test.com/factoids/factoid1"
-    assert serialized_data.get("label") == "Factoid One"
+    assert serialized_data == {
+        "@id": "http://test.com/factoids/factoid1",
+        "label": "Factoid One",
+        "person-ref": {"@id": "http://test.com/persons/person1", "label": "Person One"},
+        "source-ref": {"@id": "http://test.com/sources/source1", "label": "Source One"},
+        "statement-refs": [
+            {"@id": "http://test.com/statements/statement1", "label": "Statement One"}
+        ],
+    }
 
 
 def verify_created_modified(serialized_data):
@@ -61,6 +94,32 @@ def verify_associated_factoid_ref(serialized_data):
         factoid_refs[0]["statement-refs"][0]["@id"]
         == "http://test.com/statements/statement1"
     )
+
+
+@pytest.mark.django_db(transaction=True)
+def test_factoid_serializer(factoid, person, statement, source):
+    serialized_data = FactoidSerializer(factoid).data
+    assert serialized_data["@id"] == "http://test.com/factoids/factoid1"
+    assert serialized_data["label"] == "Factoid One"
+    assert serialized_data["person-ref"] == {
+        "@id": "http://test.com/persons/person1",
+        "label": "Person One",
+    }
+    assert serialized_data["source-ref"] == {
+        "@id": "http://test.com/sources/source1",
+        "label": "Source One",
+    }
+    assert serialized_data["statement-refs"] == [
+        {"@id": "http://test.com/statements/statement1", "label": "Statement One"}
+    ]
+    verify_created_modified(serialized_data)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_factoid_ref_serializer(factoid, person, statement, source):
+    serialized_data = FactoidRefSerializer(factoid).data
+    assert serialized_data.get("@id") == "http://test.com/factoids/factoid1"
+    assert serialized_data.get("label") == "Factoid One"
 
 
 @pytest.mark.django_db(transaction=True)

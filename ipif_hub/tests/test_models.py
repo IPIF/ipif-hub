@@ -43,8 +43,8 @@ def test_created_person_in_db(repo):
     p = Person(local_id="person1", ipif_repo=repo, **created_modified)
     p.save()
 
-    looked_up_p = Person.objects.get(pk="http://test.com/persons/person1")
-    assert looked_up_p.pk == p.pk
+    looked_up_p = Person.objects.get(identifier="http://test.com/persons/person1")
+    assert looked_up_p.identifier == p.identifier
 
 
 @pytest.mark.django_db
@@ -66,10 +66,8 @@ def test_entity_is_in_haystack(repo):
     p = Person(local_id="person1", ipif_repo=repo, **created_modified)
     p.save()
 
-    pi = PersonIndex.objects.filter(
-        id="ipif_hub.person.http://test.com/persons/person1"
-    )[0]
-    assert pi.pk == p.pk
+    pi = PersonIndex.objects.filter(identifier="http://test.com/persons/person1")[0]
+    assert pi.identifier == p.identifier
 
 
 @pytest.mark.django_db(transaction=True)
@@ -82,7 +80,7 @@ def test_adding_factoid_triggers_update_of_person_index(repo):
 
     # Confirm factoid-refs in index is empty
     pi = PersonIndex.objects.filter(
-        id="ipif_hub.person.http://test.com/persons/person1"
+        identifier="ipif_hub.person.http://test.com/persons/person1"
     )[0]
 
     pi_json = json.loads(pi.pre_serialized)

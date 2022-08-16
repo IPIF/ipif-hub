@@ -10,14 +10,7 @@ class URISerlializer(serializers.ModelSerializer):
         fields = ["uri"]
 
 
-class GenericRefSerializer:
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        id = data.pop("id", "")
-        return {"@id": id, **data}
-
-
-class PlacesSerializer(serializers.ModelSerializer):
+class PlaceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Place
         fields = ["uri", "label"]
@@ -27,39 +20,46 @@ class PlacesSerializer(serializers.ModelSerializer):
         return {"label": data["label"], "uri": data["uri"]}
 
 
+class GenericRefSerializer:
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        id = data.pop("identifier", "")
+        return {"@id": id, **data}
+
+
 class PersonRefSerializer(GenericRefSerializer, serializers.ModelSerializer):
     class Meta:
         model = Person
-        fields = ["id", "label"]
+        fields = ["identifier", "label"]
 
 
 class SourceRefSerializer(GenericRefSerializer, serializers.ModelSerializer):
     class Meta:
         model = Source
-        fields = ["id", "label"]
+        fields = ["identifier", "label"]
 
 
 class StatementRefSerializer(GenericRefSerializer, serializers.ModelSerializer):
     class Meta:
         model = Statement
-        fields = ["id", "label"]
+        fields = ["identifier", "label"]
 
 
 class FactoidRefSerializer(GenericRefSerializer, serializers.ModelSerializer):
 
     person = PersonRefSerializer()
     source = SourceRefSerializer()
-    statement = StatementRefSerializer(many=True)
+    statements = StatementRefSerializer(many=True)
 
     class Meta:
         model = Factoid
-        fields = ["id", "label", "person", "source", "statement"]
+        fields = ["identifier", "label", "person", "source", "statements"]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         person = data.pop("person")
         source = data.pop("source")
-        statements = data.pop("statement")
+        statements = data.pop("statements")
         return {
             **data,
             "person-ref": person,
@@ -72,11 +72,12 @@ class FactoidSerializer(FactoidRefSerializer):
     class Meta:
         model = Factoid
         fields = [
+            "identifier",
             "id",
             "label",
             "person",
             "source",
-            "statement",
+            "statements",
             "createdBy",
             "createdWhen",
             "modifiedBy",
@@ -91,6 +92,7 @@ class PersonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Person
         fields = [
+            "identifier",
             "id",
             "label",
             "uris",
@@ -104,7 +106,7 @@ class PersonSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        id = data.pop("id", "")
+        id = data.pop("identifier", "no")
         label = data.pop("label", "")
         factoids = data.pop("factoids")
         uris = [v["uri"] for v in data.pop("uris")]
@@ -124,6 +126,7 @@ class SourceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Source
         fields = [
+            "identifier",
             "id",
             "label",
             "uris",
@@ -137,12 +140,13 @@ class SourceSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        id = data.pop("id", "")
+        identifier = data.pop("identifier", "")
         label = data.pop("label", "")
         factoids = data.pop("factoids")
+
         uris = [v["uri"] for v in data.pop("uris")]
         return {
-            "@id": id,
+            "@id": identifier,
             "label": label,
             "uris": uris,
             **data,
@@ -151,7 +155,7 @@ class SourceSerializer(serializers.ModelSerializer):
 
 
 class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
-    places = PlacesSerializer(many=True)
+    places = PlaceSerializer(many=True)
     factoids = FactoidRefSerializer(many=True)
 
     class Meta:
@@ -183,8 +187,11 @@ class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
                 else:
                     return_dict[field] = {subfield: v}
             elif k == "relatesToPerson":
-                return_dict[k] = [{"uri": p["id"], "label": p["label"]} for p in v]
+                return_dict[k] = [
+                    {"uri": p["identifier"], "label": p["label"]} for p in v
+                ]
             else:
                 return_dict[k] = v
         return_dict["factoid-refs"] = return_dict.pop("factoids")
+        print(return_dict)
         return return_dict
