@@ -1,0 +1,82 @@
+import json
+
+import pytest
+
+from ipif_hub.tests.conftest import (
+    person,
+    source,
+    statement,
+    factoid,
+    place,
+    uri,
+    created_modified,
+)
+
+from ipif_hub.models import Person, Source, Statement, Factoid
+from ipif_hub.search_indexes import PersonIndex
+
+
+@pytest.mark.django_db(transaction=True)
+def test_entity_is_in_haystack(repo):
+    """Test created person is pushed to Haystack on save"""
+    p = Person(local_id="person1", ipif_repo=repo, **created_modified)
+    p.save()
+
+    pi = PersonIndex.objects.filter(identifier="http://test.com/persons/person1")[0]
+    assert pi.identifier == p.identifier
+
+
+@pytest.mark.django_db
+def test_entity_is_in_haystack(repo):
+    """Test created person is pushed to Haystack on save"""
+    p = Person(local_id="person1", ipif_repo=repo, **created_modified)
+    p.save()
+
+    pi = PersonIndex.objects.filter(identifier="http://test.com/persons/person1")[0]
+    assert pi.identifier == p.identifier
+
+
+@pytest.mark.django_db(transaction=True)
+def test_adding_factoid_triggers_update_of_person_index(repo):
+    """Test adding a factoid related to Person causes index to refresh"""
+
+    # Create Person
+    p = Person(local_id="person1", ipif_repo=repo, **created_modified)
+    p.save()
+
+    # Confirm factoid-refs in index is empty
+    pi = PersonIndex.objects.filter(identifier="http://test.com/persons/person1")[0]
+
+    pi_json = json.loads(pi.pre_serialized)
+    assert len(pi_json["factoid-refs"]) == 0
+
+    # Create Source and Statement
+    s = Source(local_id="source1", ipif_repo=repo, **created_modified)
+    s.save()
+    st = Statement(
+        local_id="statement1", ipif_repo=repo, **created_modified, name="John Smith"
+    )
+    st.save()
+
+    # Create Factoid
+    f = Factoid(local_id="factoid1", ipif_repo=repo, **created_modified)
+    f.person = p
+    f.source = s
+    f.save()
+    f.statements.add(st)
+    f.save()
+
+    # Check everything that should be in the index is
+    pi = PersonIndex.objects.filter(identifier="http://test.com/persons/person1")[0]
+    pi_json = json.loads(pi.pre_serialized)
+    print(pi_json)
+    assert len(pi_json["factoid-refs"]) == 1
+    assert (
+        pi_json["factoid-refs"][0]["source-ref"]["@id"]
+        == "http://test.com/sources/source1"
+    )
+
+    assert (
+        pi_json["factoid-refs"][0]["statement-refs"][0]["@id"]
+        == "http://test.com/statements/statement1"
+    )

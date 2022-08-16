@@ -110,13 +110,16 @@ class PersonSerializer(serializers.ModelSerializer):
         label = data.pop("label", "")
         factoids = data.pop("factoids")
         uris = [v["uri"] for v in data.pop("uris")]
-        return {
+
+        return_data = {
             "@id": id,
             "label": label,
             "uris": uris,
             **data,
             "factoid-refs": factoids,
         }
+        print(return_data)
+        return return_data
 
 
 class SourceSerializer(serializers.ModelSerializer):
@@ -193,5 +196,5 @@ class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
             else:
                 return_dict[k] = v
         return_dict["factoid-refs"] = return_dict.pop("factoids")
-        print(return_dict)
+
         return return_dict

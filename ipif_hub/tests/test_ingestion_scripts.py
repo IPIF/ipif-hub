@@ -447,7 +447,7 @@ def test_ingest_factoid_with_valid_data_and_refs_already_created(
     assert f.source == Source.objects.get(pk="http://test.com/sources/Source1")
     assert (
         Statement.objects.get(pk="http://test.com/statements/St1-John-Smith-Name")
-        in f.statement.all()
+        in f.statements.all()
     )
 
 
@@ -618,11 +618,11 @@ def test_ingest_factoid_with_updated_data(
     assert f.source == Source.objects.get(pk="http://test.com/sources/Source1")
     assert (
         Statement.objects.get(pk="http://test.com/statements/St1-John-Smith-Name")
-        in f.statement.all()
+        in f.statements.all()
     )
     assert (
         Statement.objects.get(pk="http://test.com/statements/St2-jsmith-teacher")
-        in f.statement.all()
+        in f.statements.all()
     )
 
     p: Person = Person.objects.get(pk="http://persons.com/mrsSpenceley")

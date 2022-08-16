@@ -358,7 +358,7 @@ def ingest_factoid(data, ipif_repo):
             )
 
         current_statements_as_uris = {
-            statement.id for statement in factoid.statement.all()
+            statement.id for statement in factoid.statements.all()
         }
         for statement in data["statement-refs"]:
             try:
@@ -367,7 +367,7 @@ def ingest_factoid(data, ipif_repo):
                 )
                 if pk not in current_statements_as_uris:
                     s = Statement.objects.get(pk=pk)
-                    factoid.statement.add(s)
+                    factoid.statements.add(s)
                     factoid.save()
             except Statement.DoesNotExist:
                 raise DataIntegrityError(
@@ -380,12 +380,12 @@ def ingest_factoid(data, ipif_repo):
             build_qualified_id(ipif_repo.endpoint_uri, "Statement", s["@id"])
             for s in data["statement-refs"]
         }
-        current_statements = {statement for statement in factoid.statement.all()}
+        current_statements = {statement for statement in factoid.sstatement.all()}
 
         for current_statement in current_statements:
 
             if current_statement.id not in statements_to_add:
-                factoid.statement.remove(current_statement)
+                factoid.statements.remove(current_statement)
 
         factoid.save()
 
@@ -431,7 +431,7 @@ def ingest_factoid(data, ipif_repo):
 
                 s = Statement.objects.get(pk=pk)
 
-                factoid.statement.add(s)
+                factoid.statements.add(s)
             except Statement.DoesNotExist:
                 raise DataIntegrityError(
                     f"IPIF JSON Error: Factoid: {data['local_id']} references non-existant Statement @id='{statement['@id']}'"

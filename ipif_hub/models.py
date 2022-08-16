@@ -12,16 +12,20 @@ class IpifEntityAbstractBase(models.Model):
         abstract = True
         unique_together = [["local_id", "ipif_repo", "identifier"]]
 
-    # This setting id like this is a HACK (?)
-    # Idea being, user provides a local id, which we make global by prefixing the repo id
-    # then save this as PK —— see the save() method below
-    id = models.AutoField(primary_key=True)
+    id = models.UUIDField(
+        primary_key=True, editable=False, default=uuid4, db_index=True
+    )
 
+    # In change from previous version, the URL-as-pk idea has been shelved.
+    # Instead, a separate identifier field exists — this should be treated as the main
+    # way to look things up... but also useful as it allows canonical URIs to be used
+    # as identifiers. If this were the pk, two projects could not use the same URI.
+    # Consequently, we now need to qualify all lookups with the repo id!
     identifier = models.URLField(
         default="http://noneset.com", editable=False, db_index=True
     )
 
-    local_id = models.CharField(max_length=50, blank=True)
+    local_id = models.CharField(max_length=50, blank=True, db_index=True)
     ipif_repo = models.ForeignKey(
         "IpifRepo",
         verbose_name="IPIF Repository",

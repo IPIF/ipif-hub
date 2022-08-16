@@ -26,7 +26,7 @@ def setup():
     ):
         call_command("clear_index", interactive=False, verbosity=0)
         yield
-        call_command("clear_index", interactive=False, verbosity=0)
+        # call_command("clear_index", interactive=False, verbosity=0)
 
 
 test_repo_no_slug = {
@@ -187,6 +187,6 @@ def factoid2(repo, person, source, statement2):
     f.person = person
     f.source = source
     f.save()
-    f.statement.add(statement2)
+    f.statements.add(statement2)
     f.save()
     yield f

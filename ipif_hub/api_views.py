@@ -222,22 +222,28 @@ def list_view(object_class):
             # If no repository is specified, the pk needs to be a URI
             if repo == None and not is_uri(param):
                 return NOT_URI_RESPONSE
-            q &= Q(**qd("id", param)) | Q(**qd("local_id", param))
+            q &= Q(**qd("identifier", param)) | Q(**qd("local_id", param))
 
         if param := request.query_params.get("statementId"):
             if repo == None and not is_uri(param):
                 return NOT_URI_RESPONSE
-            q &= Q(**qd("statement__id", param)) | Q(**qd("statement__local_id", param))
+            q &= Q(**qd("statements__identifier", param)) | Q(
+                **qd("statements__local_id", param)
+            )
 
         if param := request.query_params.get("sourceId"):
             if repo == None and not is_uri(param):
                 return NOT_URI_RESPONSE
-            q &= Q(**qd("source__id", param)) | Q(**qd("source__local_id", param))
+            q &= Q(**qd("source__identifier", param)) | Q(
+                **qd("source__local_id", param)
+            )
 
         if param := request.query_params.get("personId"):
             if repo == None and not is_uri(param):
                 return NOT_URI_RESPONSE
-            q &= Q(**qd("person__id", param)) | Q(**qd("person__local_id", param))
+            q &= Q(**qd("person__identifier", param)) | Q(
+                **qd("person__local_id", param)
+            )
 
         # Now create queryset with previously defined q object and add statement filters
         queryset = object_class.objects.filter(q)
@@ -258,7 +264,7 @@ def list_view(object_class):
                 # Get the statements that correspond to that filter
                 statements = Statement.objects.filter(sf)
                 # Apply as a filter to queryset
-                queryset = queryset.filter(**qd("statement__in", statements))
+                queryset = queryset.filter(**qd("statements__in", statements))
 
         elif request.query_params.get("independentStatements") == "matchAny":
             st_q = Q()
@@ -267,7 +273,7 @@ def list_view(object_class):
             # ...get that statement...
             statements = Statement.objects.filter(st_q)
             # ...and then apply it as a filter on the queryset
-            queryset = queryset.filter(**qd("statement__in", statements))
+            queryset = queryset.filter(**qd("statements__in", statements))
 
         elif statement_filters:
             # Otherwise, build a Q object ANDing together each statement filter...
@@ -277,7 +283,7 @@ def list_view(object_class):
             # ...get that statement...
             statements = Statement.objects.filter(st_q)
             # ...and then apply it as a filter on the queryset
-            queryset = queryset.filter(**qd("statement__in", statements))
+            queryset = queryset.filter(**qd("statements__in", statements))
 
         # Get serialized results from Solr, adding in any fulltext lookups
         solr_pks = [r.pk for r in queryset.distinct()]

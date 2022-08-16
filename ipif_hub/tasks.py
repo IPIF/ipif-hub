@@ -20,15 +20,17 @@ from ipif_hub.management.utils.ingest_data import ingest_data
 
 logger = get_task_logger(__name__)
 
-'''
+
 @shared_task
 def update_factoid_index(instance_pk):
+    print("CALLED!!!")
     logger.debug(msg=instance_pk)
     factoid_searches = FactoidIndex.objects.filter(django_id=instance_pk)
     for factoid_search in factoid_searches:
         factoid_search.searchindex.update_object(Factoid.objects.get(pk=instance_pk))
 
     person = Factoid.objects.get(pk=instance_pk).person
+    print(person)
     person_searches = PersonIndex.objects.filter(django_id=person.pk)
     for person_search in person_searches:
         person_search.searchindex.update_object(person)
@@ -38,7 +40,7 @@ def update_factoid_index(instance_pk):
     for source_search in source_searches:
         source_search.searchindex.update_object(source)
 
-    statements = Factoid.objects.get(pk=instance_pk).statement.all()
+    statements = Factoid.objects.get(pk=instance_pk).statements.all()
     for statement in statements:
         statement_searches = StatementIndex.objects.filter(django_id=statement.pk)
         for statement_search in statement_searches:
@@ -113,4 +115,3 @@ def ingest_json_data_task(repo_id, data, job_id=None):
         from_email="ipif@hub.com",
     )
     """
-'''

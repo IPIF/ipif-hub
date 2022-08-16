@@ -1,4 +1,4 @@
-{% for statement in object.statement.all %}
+{% for statement in object.statements.all %}
 
 {{ statement.pk }}
 {{ statement.statementType_label|default_if_none:"" }}

@@ -5,14 +5,14 @@ from re import L
 
 from haystack import indexes
 
-"""
+
 from ipif_hub.serializers import (
     FactoidSerializer,
     PersonSerializer,
     SourceSerializer,
     StatementSerializer,
 )
-"""
+
 from .models import Person, Source, Factoid, Statement
 
 
@@ -51,7 +51,7 @@ place
 """
 SORT_LAST = "ZZZZZZZZ"
 SORT_DATE_LAST = datetime.datetime(2060, 1, 1)
-'''
+
 
 class BaseIndex(indexes.SearchIndex):
     identifier = indexes.CharField(model_attr="identifier")
@@ -111,11 +111,11 @@ class BaseIndex(indexes.SearchIndex):
 
     def prepare_sort_statementId(self, inst):
         if self.get_model().__name__ == "Factoid":
-            if statement := inst.statement.first():
+            if statement := inst.statements.first():
                 return statement.local_id
             return SORT_LAST
         if factoid := inst.factoids.first():
-            if statement := factoid.statement.first():
+            if statement := factoid.statements.first():
                 return statement.local_id
             return SORT_LAST
 
@@ -137,14 +137,14 @@ class BaseIndex(indexes.SearchIndex):
         if self.get_model().__name__ == "Statement":
             return inst.statementText[:20] if inst.statementText else SORT_LAST
         if self.get_model().__name__ == "Factoid":
-            if statement := inst.statement.exclude(statementText="").first():
+            if statement := inst.statements.exclude(statementText="").first():
                 try:
                     return statement.statementText[:20]
                 except:
                     return SORT_LAST
             return SORT_LAST
-        if factoid := inst.factoids.exclude(statement__statementText="").first():
-            if statement := factoid.statement.exclude(statementText="").first():
+        if factoid := inst.factoids.exclude(statements__statementText="").first():
+            if statement := factoid.statements.exclude(statementText="").first():
                 try:
                     return statement.statementText[:20]
                 except:
@@ -157,12 +157,12 @@ class BaseIndex(indexes.SearchIndex):
                 return person.local_id
             return SORT_LAST
         if self.get_model().__name__ == "Factoid":
-            if statement := inst.statement.first():
+            if statement := inst.statements.first():
                 if person := statement.relatesToPerson.first():
                     return person.local_id
             return SORT_LAST
         if factoid := inst.factoids.first():
-            if statement := factoid.statement.first():
+            if statement := factoid.statements.first():
                 if person := statement.relatesToPerson.first():
                     return person.local_id
         return SORT_LAST
@@ -171,11 +171,11 @@ class BaseIndex(indexes.SearchIndex):
         if self.get_model().__name__ == "Statement":
             return inst.memberOf_label if inst.memberOf_label else SORT_LAST
         if self.get_model().__name__ == "Factoid":
-            if statement := inst.statement.exclude(memberOf_label="").first():
+            if statement := inst.statements.exclude(memberOf_label="").first():
                 return statement.memberOf_label
             return SORT_LAST
-        if factoid := inst.factoids.exclude(statement__memberOf_label="").first():
-            if statement := factoid.statement.exclude(memberOf_label="").first():
+        if factoid := inst.factoids.exclude(statements__memberOf_label="").first():
+            if statement := factoid.statements.exclude(memberOf_label="").first():
                 return statement.memberOf_label
         return SORT_LAST
 
@@ -183,11 +183,11 @@ class BaseIndex(indexes.SearchIndex):
         if self.get_model().__name__ == "Statement":
             return inst.role_label if inst.role_label else SORT_LAST
         if self.get_model().__name__ == "Factoid":
-            if statement := inst.statement.exclude(role_label="").first():
+            if statement := inst.statements.exclude(role_label="").first():
                 return statement.role_label
             return SORT_LAST
-        if factoid := inst.factoids.exclude(statement__role_label="").first():
-            if statement := factoid.statement.exclude(role_label="").first():
+        if factoid := inst.factoids.exclude(statements__role_label="").first():
+            if statement := factoid.statements.exclude(role_label="").first():
                 return statement.role_label
         return SORT_LAST
 
@@ -195,11 +195,11 @@ class BaseIndex(indexes.SearchIndex):
         if self.get_model().__name__ == "Statement":
             return inst.name if inst.name else SORT_LAST
         if self.get_model().__name__ == "Factoid":
-            if statement := inst.statement.exclude(name="").first():
+            if statement := inst.statements.exclude(name="").first():
                 return statement.name
             return SORT_LAST
-        if factoid := inst.factoids.exclude(statement__name="").first():
-            if statement := factoid.statement.exclude(name="").first():
+        if factoid := inst.factoids.exclude(statements__name="").first():
+            if statement := factoid.statements.exclude(name="").first():
                 return statement.name
         return SORT_LAST
 
@@ -209,12 +209,12 @@ class BaseIndex(indexes.SearchIndex):
                 return place.label
             return SORT_LAST
         if self.get_model().__name__ == "Factoid":
-            if statement := inst.statement.exclude(places__label="").first():
+            if statement := inst.statements.exclude(places__label="").first():
                 if place := statement.places.first():
                     return place.label
             return SORT_LAST
-        if factoid := inst.factoids.exclude(statement__places__label="").first():
-            if statement := factoid.statement.exclude(places__label="").first():
+        if factoid := inst.factoids.exclude(statements__places__label="").first():
+            if statement := factoid.statements.exclude(places__label="").first():
                 if place := statement.places.exclude(label="").first():
                     return place.label
 
@@ -225,7 +225,7 @@ class BaseIndex(indexes.SearchIndex):
             return inst.date_sortdate if inst.date_sortdate else SORT_DATE_LAST
         if self.get_model().__name__ == "Factoid":
             if (
-                statement := inst.statement.exclude(date_sortdate__isnull=True)
+                statement := inst.statements.exclude(date_sortdate__isnull=True)
                 .order_by("date_sortdate")
                 .first()
             ):
@@ -236,12 +236,12 @@ class BaseIndex(indexes.SearchIndex):
                 )
             return SORT_DATE_LAST
         if (
-            factoid := inst.factoids.exclude(statement__date_sortdate__isnull=True)
-            .order_by("statement__date_sortdate")
+            factoid := inst.factoids.exclude(statements__date_sortdate__isnull=True)
+            .order_by("statements__date_sortdate")
             .first()
         ):
             if (
-                statement := factoid.statement.exclude(date_sortdate__isnull=True)
+                statement := factoid.statements.exclude(date_sortdate__isnull=True)
                 .order_by("date_sortdate")
                 .first()
             ):
@@ -267,24 +267,6 @@ class BaseIndex(indexes.SearchIndex):
         )
 
 
-class FactoidIndex(BaseIndex, indexes.Indexable):
-    st = indexes.CharField(
-        use_template=True, template_name=get_template("statements_from_factoid.txt")
-    )
-    f = indexes.CharField(
-        use_template=True, template_name=get_template("factoid_text.txt")
-    )
-    p = indexes.CharField(
-        use_template=True, template_name=get_template("person_from_factoid.txt")
-    )
-    s = indexes.CharField(
-        use_template=True, template_name=get_template("source_from_factoid.txt")
-    )
-
-    def get_model(self):
-        return Factoid
-
-
 class PersonIndex(BaseIndex, indexes.Indexable):
     uris = indexes.MultiValueField()
 
@@ -304,6 +286,24 @@ class PersonIndex(BaseIndex, indexes.Indexable):
 
     def get_model(self):
         return Person
+
+
+class FactoidIndex(BaseIndex, indexes.Indexable):
+    st = indexes.CharField(
+        use_template=True, template_name=get_template("statements_from_factoid.txt")
+    )
+    f = indexes.CharField(
+        use_template=True, template_name=get_template("factoid_text.txt")
+    )
+    p = indexes.CharField(
+        use_template=True, template_name=get_template("person_from_factoid.txt")
+    )
+    s = indexes.CharField(
+        use_template=True, template_name=get_template("source_from_factoid.txt")
+    )
+
+    def get_model(self):
+        return Factoid
 
 
 class SourceIndex(BaseIndex, indexes.Indexable):
@@ -357,4 +357,3 @@ def searchQuerySet_to_querySet(sinst):
     if sinst_objects:
         model = sinst_objects[0].model
         return model.objects.filter(pk__in=[r.pk for r in sinst_objects])
-'''

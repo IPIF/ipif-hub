@@ -144,7 +144,7 @@ def test_retrieve_view_with_id_as_uri(person, factoid):
 
     req = build_request_with_params()
 
-    response = vs.retrieve(request=req, pk=person.pk)
+    response = vs.retrieve(request=req, pk=person.identifier)
     assert isinstance(response, (Response,))
 
     # The response we get back is the same as was serialized
