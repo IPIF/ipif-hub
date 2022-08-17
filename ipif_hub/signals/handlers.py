@@ -33,7 +33,8 @@ def handle_merge_person_from_person_update(new_person):
 
     elif len(matching_merge_persons) == 1:
         merge_person = matching_merge_persons.first()
-        merge_person.persons.add(new_person)
+        if new_person not in merge_person.persons.all():
+            merge_person.persons.add(new_person)
 
     elif len(matching_merge_persons) > 1:
         all_persons = []
