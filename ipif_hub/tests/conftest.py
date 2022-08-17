@@ -92,21 +92,28 @@ def place():
 
 @pytest.fixture
 @pytest.mark.django_db(transaction=True)
-def person(repo):
+def alt_uri():
+    uri = URI(uri="http://alternative.com/person1")
+    uri.save()
+    return uri
+
+
+@pytest.fixture
+@pytest.mark.django_db(transaction=True)
+def person(repo, alt_uri):
     p = Person(
         local_id="person1", label="Person One", ipif_repo=repo, **created_modified
     )
     p.save()
-    uri = URI(uri="http://alternative.com/person1")
-    uri.save()
-    p.uris.add(uri)
+
+    p.uris.add(alt_uri)
     p.save()
     yield p
 
 
 @pytest.fixture
 @pytest.mark.django_db(transaction=True)
-def person_sameAs(repo2):
+def person_sameAs(repo2, alt_uri):
     p = Person(
         local_id="person_sameAs",
         label="Person SameAs",
@@ -114,9 +121,7 @@ def person_sameAs(repo2):
         **created_modified,
     )
     p.save()
-    uri = URI(uri="http://alternative.com/person1")
-    uri.save()
-    p.uris.add(uri)
+    p.uris.add(alt_uri)
     p.save()
     yield p
 
@@ -128,9 +133,7 @@ def person2(repo):
         local_id="person2", label="Person Two", ipif_repo=repo, **created_modified
     )
     p.save()
-    uri = URI(uri="http://alternative.com/person2")
-    uri.save()
-    p.uris.add(uri)
+    p.uris.add(alt_uri)
     p.save()
     yield p
 

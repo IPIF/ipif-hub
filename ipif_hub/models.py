@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import Union
+from tkinter import Entry
+from typing import Set, Union
 from uuid import uuid4
 from django.db import models
 from django.core.validators import URLValidator
@@ -68,34 +69,53 @@ class IpifEntityAbstractBase(models.Model):
         super().save(*args, **kwargs)
 
 
-class MergePerson(models.Model):
+class URI(models.Model):
+    uri = models.URLField(db_index=True)
+
+    def __str__(self):
+        return self.uri
+
+
+class AbstractMergeEntity(models.Model):
+    class Meta:
+        abstract = True
+
     id = models.UUIDField(
         primary_key=True, editable=False, default=uuid4, db_index=True
     )
-    uris = models.ManyToManyField("URI", blank=True)
+    createdBy = models.CharField(max_length=300)
+    createdWhen = models.DateField()
+    modifiedBy = models.CharField(max_length=300)
+    modifiedWhen = models.DateField()
+
+    @property
+    def uri_set(self) -> Set:
+        return {uri.uri for uri in self.uris.distinct()}
+
+
+class MergePerson(AbstractMergeEntity):
+
     persons = models.ManyToManyField(
         "Person",
         related_name="merge_person",
     )
-    createdBy = models.CharField(max_length=300)
-    createdWhen = models.DateField()
-    modifiedBy = models.CharField(max_length=300)
-    modifiedWhen = models.DateField()
+
+    @property
+    def uris(self):
+        uris = URI.objects.filter(persons__in=self.persons.all()).distinct()
+        return uris
 
 
-class MergeSource(models.Model):
-    id = models.UUIDField(
-        primary_key=True, editable=False, default=uuid4, db_index=True
-    )
-    uris = models.ManyToManyField("URI", blank=True)
+class MergeSource(AbstractMergeEntity):
     sources = models.ManyToManyField(
         "Source",
         related_name="merge_source",
     )
-    createdBy = models.CharField(max_length=300)
-    createdWhen = models.DateField()
-    modifiedBy = models.CharField(max_length=300)
-    modifiedWhen = models.DateField()
+
+    @property
+    def uris(self):
+        uris = URI.objects.filter(sources__in=self.sources.all()).distinct()
+        return uris
 
 
 class Factoid(IpifEntityAbstractBase):
@@ -122,7 +142,7 @@ class Factoid(IpifEntityAbstractBase):
 
 class Person(IpifEntityAbstractBase):
 
-    uris = models.ManyToManyField("URI", blank=True)
+    uris = models.ManyToManyField("URI", related_name="persons", blank=True)
 
     def __str__(self) -> str:
         uri_string = (
@@ -166,7 +186,7 @@ class Statement(IpifEntityAbstractBase):
 
 class Source(IpifEntityAbstractBase):
 
-    uris = models.ManyToManyField("URI", blank=True)
+    uris = models.ManyToManyField("URI", related_name="sources", blank=True)
 
     def __str__(self) -> str:
         uri_string = (
@@ -183,13 +203,6 @@ class Place(models.Model):
 
     def __str__(self):
         return f"{self.label} ({self.uri})"
-
-
-class URI(models.Model):
-    uri = models.URLField(db_index=True)
-
-    def __str__(self):
-        return self.uri
 
 
 from django.contrib.auth.models import User

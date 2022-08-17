@@ -118,7 +118,7 @@ class PersonSerializer(serializers.ModelSerializer):
             **data,
             "factoid-refs": factoids,
         }
-        print(return_data)
+
         return return_data
 
 

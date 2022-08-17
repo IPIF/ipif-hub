@@ -3,7 +3,15 @@ import json
 
 from django.db import IntegrityError
 
-from ipif_hub.models import Factoid, Person, IpifRepo, Source, Statement
+from ipif_hub.models import (
+    Factoid,
+    Person,
+    IpifRepo,
+    Source,
+    Statement,
+    MergePerson,
+    MergeSource,
+)
 
 # from ipif_hub.search_indexes import PersonIndex
 
@@ -12,6 +20,7 @@ from ipif_hub.tests.conftest import (
     repo,
     test_repo_no_slug,
     created_modified,
+    person,
     person_sameAs,
     repo2,
 )
@@ -65,3 +74,39 @@ def test_create_person_and_correct_id_when_id_is_uri(repo):
     # Test the qualified uri works
     uri_id = p.build_uri_id_from_slug("http://test.com/persons/person1")
     assert uri_id == "http://test.com/persons/person1"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_create_merge_person_and_connect_two_persons(
+    repo, repo2, person, person_sameAs
+):
+    mp = MergePerson(**created_modified)
+    mp.save()
+    mp.persons.add(person, person_sameAs)
+
+    # assert mp.uris.first().uri == "http://alternative.com/person1"
+
+    # assert mp.uri_set == {"http://alternative.com/person1"}
+
+    assert person in mp.persons.all()
+
+    assert MergePerson.objects.filter(persons__uris=mp.uris.first()).first() == mp
+
+
+"""
+OK:
+
+when we save a person —- always add URLs first
+
+check all of those persons URIs -- get all the MergePersons with those URIs
+
+- if NONE: create a new MergePerson, adding person
+- if ONE: ... nothing: it's already there: add person
+- if N: --- take first, add persons from the other ones, delete the others
+
+-- on delete persons... 
+    use that algorithm...
+
+
+
+"""
