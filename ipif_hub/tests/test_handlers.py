@@ -11,7 +11,26 @@ from ipif_hub.tests.conftest import (
     person_sameAs,
     alt_uri,
     created_modified,
+    mute_signals,
 )
+
+
+@pytest.mark.django_db(transaction=True)
+def test_handle_merge_person_called_by_m2m_changed(repo):
+    uri1 = URI(uri="http://one.com")
+    uri1.save()
+
+    p1 = Person(
+        local_id="person1",
+        label="person1",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    p1.save()
+    p1.uris.add(uri1)
+
+    merge_persons = MergePerson.objects.all()
+    assert len(merge_persons) == 1
 
 
 @pytest.mark.django_db(transaction=True)
@@ -41,7 +60,7 @@ def test_handle_merge_person_from_person_update_add_second_person(
 
 
 @pytest.mark.django_db
-def test_handle_merge_person_from_person_update_add_join(repo):
+def test_handle_merge_person_from_person_update_add_join(mute_signals, repo):
     uri1 = URI(uri="http://one.com")
     uri1.save()
 
@@ -96,3 +115,58 @@ def test_handle_merge_person_from_person_update_add_join(repo):
 
     assert uri1 in merge_person.uris
     assert uri2 in merge_person.uris
+
+
+@pytest.mark.django_db(transaction=True)
+def test_handle_delete_person_updates_merge_persons(repo):
+
+    # Set up — create three persons with a joining URI
+    uri1 = URI(uri="http://one.com")
+    uri1.save()
+
+    uri2 = URI(uri="http://two.com")
+    uri2.save()
+
+    p1 = Person(
+        local_id="person1",
+        label="person1",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    p1.save()
+    p1.uris.add(uri1)
+
+    p4 = Person(
+        local_id="person4",
+        label="person4",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    p4.save()
+    p4.uris.add(uri1)
+
+    p2 = Person(
+        local_id="person2",
+        label="person2",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    p2.save()
+    p2.uris.add(uri2)
+
+    p3 = Person(
+        local_id="person3",
+        label="person3",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    p3.save()
+    p3.uris.add(uri1, uri2)
+
+    merge_persons = MergePerson.objects.all()
+    assert len(merge_persons) == 1
+
+    # Now test
+    p3.delete()
+    merge_persons = MergePerson.objects.all()
+    assert len(merge_persons) == 2

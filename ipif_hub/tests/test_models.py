@@ -23,6 +23,7 @@ from ipif_hub.tests.conftest import (
     person,
     person_sameAs,
     repo2,
+    mute_signals,
 )
 
 
@@ -78,7 +79,7 @@ def test_create_person_and_correct_id_when_id_is_uri(repo):
 
 @pytest.mark.django_db(transaction=True)
 def test_create_merge_person_and_connect_two_persons(
-    repo, repo2, person, person_sameAs
+    mute_signals, repo, repo2, person, person_sameAs
 ):
     mp = MergePerson(**created_modified)
     mp.save()

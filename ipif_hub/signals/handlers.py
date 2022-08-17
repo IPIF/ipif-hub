@@ -1,6 +1,6 @@
 import datetime
 
-from django.db.models.signals import post_save, m2m_changed
+from django.db.models.signals import post_save, m2m_changed, post_delete, pre_delete
 from django.dispatch import receiver
 from django.db import transaction
 from ipif_hub.models import Person, Source, Statement, Factoid, MergePerson, MergeSource
@@ -33,8 +33,7 @@ def handle_merge_person_from_person_update(new_person):
 
     elif len(matching_merge_persons) == 1:
         merge_person = matching_merge_persons.first()
-        if new_person not in merge_person.persons.all():
-            merge_person.persons.add(new_person)
+        merge_person.persons.add(new_person)
 
     elif len(matching_merge_persons) > 1:
         all_persons = []
@@ -51,9 +50,64 @@ def handle_merge_person_from_person_update(new_person):
         new_merged_person.persons.add(*all_persons, new_person)
 
 
+def merge(lists, results=None):
+
+    if results is None:
+        results = []
+
+    if not lists:
+        return results
+
+    first = sorted(lists, key=len, reverse=True)[0]
+    merged = []
+    output = []
+
+    for li in sorted(lists, key=len, reverse=True)[1:]:
+        for i in first:
+            if i in li:
+                merged = merged + li
+                break
+        else:
+            output.append(li)
+
+    merged = merged + first
+    results.append(list(set(merged)))
+
+    return merge(output, results)
+
+
+def handle_delete_person_updating_merge_persons(person_to_delete):
+    """On pre-delete of a person, remove the person's MergePerson
+    (delete it later). Find all remaining persons attached to that
+    MergePerson, and regroup them by common URIs. Then create
+    a new MergePerson for each group, attaching relevant persons.
+    """
+    old_merge_person = MergePerson.objects.get(persons=person_to_delete)
+    remaining_persons = old_merge_person.persons.exclude(pk=person_to_delete.pk)
+    uris_to_group = [list(person.uris.all()) for person in remaining_persons]
+
+    merged_uri_groups = merge(uris_to_group)
+
+    for uri_group in merged_uri_groups:
+        persons = (
+            Person.objects.filter(uris__in=uri_group)
+            .exclude(pk=person_to_delete.pk)
+            .distinct()
+        )
+        new_merged_person = MergePerson(
+            createdBy="ipif-hub",
+            createdWhen=datetime.date.today(),
+            modifiedBy="ipif-hub",
+            modifiedWhen=datetime.date.today(),
+        )
+        new_merged_person.save()
+        new_merged_person.persons.add(*persons)
+    old_merge_person.delete()
+
+
 @receiver(m2m_changed, sender=MergePerson.persons.through)
 def merge_person_m2m_changed(sender, instance, **kwargs):
-    # print("MP_m2mchanged PERSON CALLED")
+    # TODO: TRIGGER INDEXING OF MergePerson
     pass
 
 
@@ -78,7 +132,20 @@ def factoid_post_save(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Person)
 def person_post_save(sender, instance, **kwargs):
+
     transaction.on_commit(lambda: update_person_index.delay(instance.pk))
+
+
+@receiver(m2m_changed, sender=Person.uris.through)
+def person_m2m_changed(sender, instance, **kwargs):
+
+    handle_merge_person_from_person_update(instance)
+
+
+@receiver(pre_delete, sender=Person)
+def person_pre_delete(sender, instance, **kwargs):
+    print(instance)
+    handle_delete_person_updating_merge_persons(instance)
 
 
 @receiver(post_save, sender=Source)

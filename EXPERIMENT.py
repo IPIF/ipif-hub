@@ -1,12 +1,8 @@
 persons = [
-    [1, 2, 3],
-    [7, 100],
-    [2, 3, 4],
-    [5, 6, 7],
-    [7, 8, 9],
-    [10, 11, 12],
-    [13, 14, 1],
-    [100, 42],
+    ["http://one.com"],
+    ["http://one.com", "four"],
+    ["http://two.com", "three"],
+    ["three", "five", "six"],
 ]
 
 
@@ -18,11 +14,11 @@ def merge(lists, results=None):
     if not lists:
         return results
 
-    first = lists[0]
+    first = sorted(lists, key=len, reverse=True)[0]
     merged = []
     output = []
 
-    for li in lists[1:]:
+    for li in sorted(lists, key=len, reverse=True)[1:]:
         for i in first:
             if i in li:
                 merged = merged + li
@@ -34,3 +30,6 @@ def merge(lists, results=None):
     results.append(list(set(merged)))
 
     return merge(output, results)
+
+
+print(merge(persons))

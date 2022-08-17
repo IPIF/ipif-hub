@@ -57,6 +57,36 @@ created_modified = {
 }
 
 
+# tests/intergration_tests/conftest.py
+from django.db.models.signals import (
+    pre_save,
+    post_save,
+    pre_delete,
+    post_delete,
+    m2m_changed,
+)
+import pytest
+from unittest import mock
+
+
+@pytest.fixture  # Automatically use in tests.
+def mute_signals():
+    # Skip applying, if marked with `enabled_signals`
+
+    signals = [pre_save, post_save, pre_delete, post_delete, m2m_changed]
+    restore = {}
+    for signal in signals:
+        # Temporally remove the signal's receivers (a.k.a attached functions)
+        restore[signal] = signal.receivers
+        signal.receivers = []
+
+    yield
+
+    # When the test tears down, restore the signals.
+    for signal, receivers in restore.items():
+        signal.receivers = receivers
+
+
 @pytest.fixture
 @pytest.mark.django_db(transaction=True)
 def repo():
