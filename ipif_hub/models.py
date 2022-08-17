@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Union
 from uuid import uuid4
 from django.db import models
 from django.core.validators import URLValidator
@@ -44,7 +45,7 @@ class IpifEntityAbstractBase(models.Model):
 
     inputContentHash = models.CharField(max_length=60, default="")
 
-    def build_uri_id_from_slug(self, id):
+    def build_uri_id_from_slug(self, id: str) -> str:
         """Returns the full IPIF-compliant URL version of the entity"""
         try:
             validator = URLValidator()
@@ -61,10 +62,40 @@ class IpifEntityAbstractBase(models.Model):
         entity_type = f"{type(self).__name__.lower()}s"
         return f"{url}/{entity_type}/{id}"
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
         if not self.identifier or self.identifier == "http://noneset.com":
             self.identifier = self.build_uri_id_from_slug(self.local_id)
         super().save(*args, **kwargs)
+
+
+class MergePerson(models.Model):
+    id = models.UUIDField(
+        primary_key=True, editable=False, default=uuid4, db_index=True
+    )
+    uris = models.ManyToManyField("URI", blank=True)
+    persons = models.ManyToManyField(
+        "Person",
+        related_name="merge_person",
+    )
+    createdBy = models.CharField(max_length=300)
+    createdWhen = models.DateField()
+    modifiedBy = models.CharField(max_length=300)
+    modifiedWhen = models.DateField()
+
+
+class MergeSource(models.Model):
+    id = models.UUIDField(
+        primary_key=True, editable=False, default=uuid4, db_index=True
+    )
+    uris = models.ManyToManyField("URI", blank=True)
+    sources = models.ManyToManyField(
+        "Source",
+        related_name="merge_source",
+    )
+    createdBy = models.CharField(max_length=300)
+    createdWhen = models.DateField()
+    modifiedBy = models.CharField(max_length=300)
+    modifiedWhen = models.DateField()
 
 
 class Factoid(IpifEntityAbstractBase):
@@ -93,7 +124,7 @@ class Person(IpifEntityAbstractBase):
 
     uris = models.ManyToManyField("URI", blank=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         uri_string = (
             f" ({', '.join(uri.uri for uri in self.uris.all())})"
             if self.uris.exists()
@@ -137,7 +168,7 @@ class Source(IpifEntityAbstractBase):
 
     uris = models.ManyToManyField("URI", blank=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         uri_string = (
             f" ({', '.join(uri.uri for uri in self.uris.all())})"
             if self.uris.exists()
@@ -216,13 +247,13 @@ class IngestionJob(models.Model):
         self.is_complete = True
 
     @property
-    def job_duration(self):
+    def job_duration(self) -> Union[datetime, None]:
         if self.is_complete:
             return self.end_datetime - self.start_datetime
         return None
 
 
-def get_ipif_hub_repo_AUTOCREATED_instance():
+def get_ipif_hub_repo_AUTOCREATED_instance() -> IpifRepo:
     try:
         ipif_hub_repo_AUTOCREATED = IpifRepo.objects.get(
             endpoint_slug="IPIFHUB_AUTOCREATED"

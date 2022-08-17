@@ -16,16 +16,6 @@ from ipif_hub.models import Person, Source, Statement, Factoid
 from ipif_hub.search_indexes import PersonIndex
 
 
-@pytest.mark.django_db(transaction=True)
-def test_entity_is_in_haystack(repo):
-    """Test created person is pushed to Haystack on save"""
-    p = Person(local_id="person1", ipif_repo=repo, **created_modified)
-    p.save()
-
-    pi = PersonIndex.objects.filter(identifier="http://test.com/persons/person1")[0]
-    assert pi.identifier == p.identifier
-
-
 @pytest.mark.django_db
 def test_entity_is_in_haystack(repo):
     """Test created person is pushed to Haystack on save"""

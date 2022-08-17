@@ -39,6 +39,16 @@ test_repo_no_slug = {
     "provider": "University of Test",
 }
 
+test_repo_no_slug2 = {
+    "endpoint_name": "TestRepo2",
+    "endpoint_uri": "http://test2.com/",
+    "refresh_frequency": "daily",
+    "refresh_time": datetime.time(0, 0, 0),
+    "endpoint_is_ipif": False,
+    "description": "A test repo2",
+    "provider": "University of Test2",
+}
+
 created_modified = {
     "createdWhen": datetime.date(2022, 3, 1),
     "createdBy": "researcher1",
@@ -52,6 +62,14 @@ created_modified = {
 def repo():
     # Create a repo
     repo = IpifRepo(endpoint_slug="testrepo", **test_repo_no_slug)
+    repo.save()
+    yield repo
+
+
+@pytest.fixture
+@pytest.mark.django_db(transaction=True)
+def repo2():
+    repo = IpifRepo(endpoint_slug="testrepo2", **test_repo_no_slug2)
     repo.save()
     yield repo
 
@@ -77,6 +95,23 @@ def place():
 def person(repo):
     p = Person(
         local_id="person1", label="Person One", ipif_repo=repo, **created_modified
+    )
+    p.save()
+    uri = URI(uri="http://alternative.com/person1")
+    uri.save()
+    p.uris.add(uri)
+    p.save()
+    yield p
+
+
+@pytest.fixture
+@pytest.mark.django_db(transaction=True)
+def person_sameAs(repo2):
+    p = Person(
+        local_id="person_sameAs",
+        label="Person SameAs",
+        ipif_repo=repo2,
+        **created_modified,
     )
     p.save()
     uri = URI(uri="http://alternative.com/person1")

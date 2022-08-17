@@ -314,13 +314,16 @@ class SourceIndex(BaseIndex, indexes.Indexable):
         template_name=get_template("statements_via_related_factoid.txt"),
     )
     f = indexes.CharField(
-        use_template=True, template_name=get_template("related_factoid.txt")
+        use_template=True,
+        template_name=get_template("related_factoid.txt"),
     )
     s = indexes.CharField(
-        use_template=True, template_name=get_template("source_text.txt")
+        use_template=True,
+        template_name=get_template("source_text.txt"),
     )
     p = indexes.CharField(
-        use_template=True, template_name=get_template("person_via_related_factoid.txt")
+        use_template=True,
+        template_name=get_template("person_via_related_factoid.txt"),
     )
 
     def get_model(self):

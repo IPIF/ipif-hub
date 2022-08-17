@@ -62,20 +62,6 @@ def test_statetment_ref_serializer(statement):
     assert serialized_data.get("label") == "Statement One"
 
 
-@pytest.mark.django_db(transaction=True)
-def test_factoid_ref_serializer(factoid, person, statement, source):
-    serialized_data = FactoidRefSerializer(factoid).data
-    assert serialized_data == {
-        "@id": "http://test.com/factoids/factoid1",
-        "label": "Factoid One",
-        "person-ref": {"@id": "http://test.com/persons/person1", "label": "Person One"},
-        "source-ref": {"@id": "http://test.com/sources/source1", "label": "Source One"},
-        "statement-refs": [
-            {"@id": "http://test.com/statements/statement1", "label": "Statement One"}
-        ],
-    }
-
-
 def verify_created_modified(serialized_data):
     """Checks created/modified fields are correct (call from other tests)"""
 

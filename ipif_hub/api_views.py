@@ -1,7 +1,7 @@
 from dataclasses import field
 from itertools import islice
 import json
-from typing import List
+from typing import Callable, List, Type
 
 from django.db.models import Q
 from django.core.validators import URLValidator
@@ -17,7 +17,7 @@ from haystack.inputs import Raw
 import datetime
 from dateutil.parser import parse as parse_date
 
-from .models import Factoid, Person, Source, Statement
+from .models import Factoid, Person, Source, Statement, IpifEntityAbstractBase
 from .search_indexes import PersonIndex, FactoidIndex, SourceIndex, StatementIndex
 from .serializers import (
     FactoidSerializer,
@@ -86,7 +86,7 @@ def build_statement_filters(request) -> List[Q]:
     return statement_filters
 
 
-def query_dict(path):
+def query_dict(path: str) -> Callable:
     """Creates an ORM join-path to related entities, returning
     a function that creates a dictionary
 
@@ -125,7 +125,7 @@ NOT_URI_RESPONSE = Response(
 )
 
 
-def list_view(object_class):
+def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
     """
 
     ✅ size
@@ -355,11 +355,11 @@ def retrieve_view(object_class):
     return inner
 
 
-def build_viewset(object_class) -> viewsets.ViewSet:
-    viewset = f"{object_class.__name__}ViewSet"
+def build_viewset(object_class: Type[IpifEntityAbstractBase]) -> Type[viewsets.ViewSet]:
+    viewset_name = f"{object_class.__name__}ViewSet"
     # serializer = globals()[f"{object_class.__name__}Serializer"]
-    return type(
-        viewset,
+    vs: Type[viewsets.ViewSet] = type(
+        viewset_name,
         (viewsets.ViewSet,),
         {
             # "pagination_class": StandardResultsSetPagination, # does not work
@@ -367,6 +367,7 @@ def build_viewset(object_class) -> viewsets.ViewSet:
             "retrieve": retrieve_view(object_class),
         },
     )
+    return vs
 
 
 # Construct these viewsets
