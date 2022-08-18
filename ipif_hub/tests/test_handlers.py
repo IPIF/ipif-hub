@@ -1,17 +1,9 @@
-import datetime
-
-from django.db import transaction
 import pytest
 
 from ipif_hub.models import URI, MergePerson, Person
 from ipif_hub.signals.handlers import handle_merge_person_from_person_update
 from ipif_hub.tests.conftest import (
-    repo,
-    person,
-    person_sameAs,
-    alt_uri,
     created_modified,
-    mute_signals,
 )
 
 
@@ -168,5 +160,15 @@ def test_handle_delete_person_updates_merge_persons(repo):
 
     # Now test
     p3.delete()
+
     merge_persons = MergePerson.objects.all()
     assert len(merge_persons) == 2
+
+    # Check that all the persons are attached to a MergePerson object
+    persons_to_account_for = [p1, p2, p4]
+
+    for mp in merge_persons:
+        for person in mp.persons.all():
+            persons_to_account_for.remove(person)
+
+    assert persons_to_account_for == []

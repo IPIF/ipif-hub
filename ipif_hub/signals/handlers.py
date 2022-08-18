@@ -1,6 +1,10 @@
 import datetime
+import itertools
+from typing import List, Any
 
-from django.db.models.signals import post_save, m2m_changed, post_delete, pre_delete
+import numpy as np
+
+from django.db.models.signals import post_save, m2m_changed, pre_delete
 from django.dispatch import receiver
 from django.db import transaction
 from ipif_hub.models import Person, Source, Statement, Factoid, MergePerson, MergeSource
@@ -50,33 +54,42 @@ def handle_merge_person_from_person_update(new_person):
         new_merged_person.persons.add(*all_persons, new_person)
 
 
-def merge(lists, results=None):
-
-    if results is None:
-        results = []
-
-    if not lists:
-        return results
-
-    first = sorted(lists, key=len, reverse=True)[0]
-    merged = []
-    output = []
-
-    for li in sorted(lists, key=len, reverse=True)[1:]:
-        for i in first:
-            if i in li:
-                merged = merged + li
-                break
-        else:
-            output.append(li)
-
-    merged = merged + first
-    results.append(list(set(merged)))
-
-    return merge(output, results)
+def merge(persons: list, results=None) -> Any:
+    """This code suggested by Philipp Petersen
+    (https://ufind.univie.ac.at/de/person.html?id=109645)
 
 
-def handle_delete_person_updating_merge_persons(person_to_delete):
+    It works, which is cool. It also uses Numpy, which is unnecessary.
+
+    """
+
+    all_values = list(set(itertools.chain(*persons)))
+
+    persons_copy = persons.copy()
+
+    for k in range(len(all_values)):
+
+        mergers = np.zeros(len(persons_copy))
+
+        for p in range(len(persons_copy)):
+            if all_values[k] in persons_copy[p]:
+                mergers[p] = 1
+
+        if np.sum(mergers) > 1:
+
+            merge_these_please = np.where(mergers == 1)[0]
+            ready_to_merge = [persons_copy[i] for i in merge_these_please]
+            merged_stuff = np.unique(np.concatenate(ready_to_merge))
+
+            sorted_ = np.sort(merge_these_please)  # probably not necessary
+
+            for q in sorted_[::-1]:
+                persons_copy.pop(q)
+            persons_copy.append(list(merged_stuff))
+    return persons_copy
+
+
+def handle_delete_person_updating_merge_persons(person_to_delete: Person) -> None:
     """On pre-delete of a person, remove the person's MergePerson
     (delete it later). Find all remaining persons attached to that
     MergePerson, and regroup them by common URIs. Then create
@@ -84,13 +97,15 @@ def handle_delete_person_updating_merge_persons(person_to_delete):
     """
     old_merge_person = MergePerson.objects.get(persons=person_to_delete)
     remaining_persons = old_merge_person.persons.exclude(pk=person_to_delete.pk)
-    uris_to_group = [list(person.uris.all()) for person in remaining_persons]
-
-    merged_uri_groups = merge(uris_to_group)
+    uris_to_group = [
+        [uri.uri for uri in person.uris.all()] for person in remaining_persons
+    ]
+    print(uris_to_group)
+    merged_uri_groups: List[list] = merge(uris_to_group)
 
     for uri_group in merged_uri_groups:
         persons = (
-            Person.objects.filter(uris__in=uri_group)
+            Person.objects.filter(uris__uri__in=uri_group)
             .exclude(pk=person_to_delete.pk)
             .distinct()
         )

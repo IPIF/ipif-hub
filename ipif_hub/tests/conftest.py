@@ -1,23 +1,31 @@
+import datetime
+
 import pytest
-from django.test import override_settings
 from django.core.management import call_command
+from django.db.models.signals import (
+    m2m_changed,
+    post_delete,
+    post_save,
+    pre_delete,
+    pre_save,
+)
+from django.test import override_settings
 
 from ipif_hub.models import (
+    URI,
+    Factoid,
     IpifRepo,
     Person,
+    Place,
     Source,
     Statement,
-    Factoid,
-    Place,
-    URI,
     get_ipif_hub_repo_AUTOCREATED_instance,
 )
-import datetime
 
 
 @pytest.fixture(autouse=True)
-@pytest.mark.django_db
-def setup():
+@pytest.mark.django_db()
+def _setup():
     with override_settings(
         CELERY_ALWAYS_EAGER=True,
         CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
@@ -26,7 +34,7 @@ def setup():
     ):
         call_command("clear_index", interactive=False, verbosity=0)
         yield
-        # call_command("clear_index", interactive=False, verbosity=0)
+        call_command("clear_index", interactive=False, verbosity=0)
 
 
 test_repo_no_slug = {
@@ -58,15 +66,6 @@ created_modified = {
 
 
 # tests/intergration_tests/conftest.py
-from django.db.models.signals import (
-    pre_save,
-    post_save,
-    pre_delete,
-    post_delete,
-    m2m_changed,
-)
-import pytest
-from unittest import mock
 
 
 @pytest.fixture  # Automatically use in tests.
@@ -87,24 +86,24 @@ def mute_signals():
         signal.receivers = receivers
 
 
-@pytest.fixture
+@pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def repo():
     # Create a repo
     repo = IpifRepo(endpoint_slug="testrepo", **test_repo_no_slug)
     repo.save()
-    yield repo
+    return repo
 
 
-@pytest.fixture
+@pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def repo2():
     repo = IpifRepo(endpoint_slug="testrepo2", **test_repo_no_slug2)
     repo.save()
-    yield repo
+    return repo
 
 
-@pytest.fixture
+@pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def uri():
     uri = URI(uri="http://person_uri.com/person1")
@@ -112,7 +111,7 @@ def uri():
     return uri
 
 
-@pytest.fixture
+@pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def place():
     place = Place(uri="http://places.com/place1", label="place1")
@@ -120,7 +119,7 @@ def place():
     return place
 
 
-@pytest.fixture
+@pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def alt_uri():
     uri = URI(uri="http://alternative.com/person1")
@@ -128,7 +127,7 @@ def alt_uri():
     return uri
 
 
-@pytest.fixture
+@pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def person(repo, alt_uri):
     p = Person(
@@ -138,10 +137,10 @@ def person(repo, alt_uri):
 
     p.uris.add(alt_uri)
     p.save()
-    yield p
+    return p
 
 
-@pytest.fixture
+@pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def person_sameAs(repo2, alt_uri):
     p = Person(
@@ -153,10 +152,10 @@ def person_sameAs(repo2, alt_uri):
     p.save()
     p.uris.add(alt_uri)
     p.save()
-    yield p
+    return p
 
 
-@pytest.fixture
+@pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def person2(repo):
     p = Person(
@@ -165,20 +164,20 @@ def person2(repo):
     p.save()
     p.uris.add(alt_uri)
     p.save()
-    yield p
+    return p
 
 
-@pytest.fixture
+@pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def source(repo):
     s = Source(
         local_id="source1", label="Source One", ipif_repo=repo, **created_modified
     )
     s.save()
-    yield s
+    return s
 
 
-@pytest.fixture
+@pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def statement(repo):
     related_person = Person(
@@ -212,7 +211,7 @@ def statement(repo):
     st.relatesToPerson.add(related_person)
     st.places.add(place)
     st.save()
-    yield st
+    return st
 
 
 @pytest.fixture
