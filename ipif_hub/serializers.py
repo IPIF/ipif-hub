@@ -1,7 +1,6 @@
-import re
 from rest_framework import serializers
 
-from .models import Person, URI, Factoid, Place, Source, Statement
+from ipif_hub.models import MergePerson, Person, URI, Factoid, Place, Source, Statement
 
 
 class URISerlializer(serializers.ModelSerializer):
@@ -198,3 +197,26 @@ class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
         return_dict["factoid-refs"] = return_dict.pop("factoids")
 
         return return_dict
+
+
+class MergePersonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MergePerson
+        exclude = ["persons"]
+
+    def to_representation(self, instance: MergePerson):
+        data = super().to_representation(instance)
+        id = data.pop("id")
+
+        return_data = {"@id": id, **data}
+        return_data["uris"] = list(instance.uri_set)
+
+        return_data["factoid-refs"] = []
+
+        for person in instance.persons.all():
+            if factoids := person.factoids.all():
+                return_data["factoid-refs"].append(
+                    FactoidRefSerializer(factoids, many=True).data
+                )
+
+        return return_data

@@ -214,7 +214,7 @@ def statement(repo):
     return st
 
 
-@pytest.fixture
+@pytest.fixture()
 @pytest.mark.django_db
 def statement2(repo):
     st = Statement(
@@ -228,32 +228,55 @@ def statement2(repo):
     )
 
     st.save()
-    yield st
+    return st
 
 
-@pytest.fixture
+@pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def factoid(repo, person, source, statement):
     f = Factoid(
-        local_id="factoid1", label="Factoid One", ipif_repo=repo, **created_modified
+        local_id="factoid1",
+        label="Factoid One",
+        ipif_repo=repo,
+        **created_modified,
     )
     f.person = person
     f.source = source
     f.save()
     f.statements.add(statement)
     f.save()
-    yield f
+    return f
 
 
-@pytest.fixture
+@pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def factoid2(repo, person, source, statement2):
     f = Factoid(
-        local_id="factoid2", label="Factoid Two", ipif_repo=repo, **created_modified
+        local_id="factoid2",
+        label="Factoid Two",
+        ipif_repo=repo,
+        **created_modified,
     )
     f.person = person
     f.source = source
     f.save()
     f.statements.add(statement2)
     f.save()
-    yield f
+    return f
+
+
+@pytest.fixture()
+@pytest.mark.django_db(transaction=True)
+def factoid3(repo, person_sameAs, source, statement2):
+    f = Factoid(
+        local_id="factoid3",
+        label="Factoid Three",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    f.person = person_sameAs
+    f.source = source
+    f.save()
+    f.statements.add(statement2)
+    f.save()
+    return f

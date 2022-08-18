@@ -1,6 +1,6 @@
 import pytest
+from ipif_hub.models import MergePerson
 
-from ipif_hub.models import IpifRepo, Person, Source, Statement, Factoid
 from ipif_hub.serializers import (
     PersonRefSerializer,
     SourceRefSerializer,
@@ -10,21 +10,12 @@ from ipif_hub.serializers import (
     SourceSerializer,
     StatementSerializer,
     FactoidSerializer,
-    GenericRefSerializer,
     PlaceSerializer,
     URISerlializer,
+    MergePersonSerializer,
 )
 
-
-from ipif_hub.tests.conftest import (
-    person,
-    source,
-    statement,
-    factoid,
-    created_modified,
-    uri,
-    place,
-)
+from ipif_hub.tests.conftest import created_modified
 
 
 @pytest.mark.django_db(transaction=True)
@@ -80,25 +71,6 @@ def verify_associated_factoid_ref(serialized_data):
         factoid_refs[0]["statement-refs"][0]["@id"]
         == "http://test.com/statements/statement1"
     )
-
-
-@pytest.mark.django_db(transaction=True)
-def test_factoid_serializer(factoid, person, statement, source):
-    serialized_data = FactoidSerializer(factoid).data
-    assert serialized_data["@id"] == "http://test.com/factoids/factoid1"
-    assert serialized_data["label"] == "Factoid One"
-    assert serialized_data["person-ref"] == {
-        "@id": "http://test.com/persons/person1",
-        "label": "Person One",
-    }
-    assert serialized_data["source-ref"] == {
-        "@id": "http://test.com/sources/source1",
-        "label": "Source One",
-    }
-    assert serialized_data["statement-refs"] == [
-        {"@id": "http://test.com/statements/statement1", "label": "Statement One"}
-    ]
-    verify_created_modified(serialized_data)
 
 
 @pytest.mark.django_db(transaction=True)
@@ -172,3 +144,87 @@ def test_factoid_serializer(factoid):
         == "http://test.com/statements/statement1"
     )
     assert serialized_data.get("statement-refs")[0]["label"] == "Statement One"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_merge_person_serializer(
+    repo, person, person_sameAs, factoid, factoid2, factoid3, source, statement
+):
+
+    assert len(MergePerson.objects.all()) == 1
+
+    merge_person = MergePerson.objects.first()
+
+    serialized_data = MergePersonSerializer(merge_person).data
+
+    # ID regenerates each time: could mock this to be stable,
+    # but it's really fine so just don't bother
+    serialized_data.pop("@id")
+
+    assert serialized_data == {
+        "createdBy": "ipif-hub",
+        "createdWhen": "2022-08-18",
+        "modifiedBy": "ipif-hub",
+        "modifiedWhen": "2022-08-18",
+        "uris": ["http://alternative.com/person1"],
+        "factoid-refs": [
+            [
+                {
+                    "@id": "http://test.com/factoids/factoid1",
+                    "label": "Factoid One",
+                    "person-ref": {
+                        "@id": "http://test.com/persons/person1",
+                        "label": "Person One",
+                    },
+                    "source-ref": {
+                        "@id": "http://test.com/sources/source1",
+                        "label": "Source One",
+                    },
+                    "statement-refs": [
+                        {
+                            "@id": "http://test.com/statements/statement1",
+                            "label": "Statement One",
+                        }
+                    ],
+                },
+                {
+                    "@id": "http://test.com/factoids/factoid2",
+                    "label": "Factoid Two",
+                    "person-ref": {
+                        "@id": "http://test.com/persons/person1",
+                        "label": "Person One",
+                    },
+                    "source-ref": {
+                        "@id": "http://test.com/sources/source1",
+                        "label": "Source One",
+                    },
+                    "statement-refs": [
+                        {
+                            "@id": "http://test.com/statements/statement2",
+                            "label": "Statement Two",
+                        }
+                    ],
+                },
+            ],
+            [
+                {
+                    "@id": "http://test.com/factoids/factoid3",
+                    "label": "Factoid Three",
+                    "person-ref": {
+                        "@id": "http://test2.com/persons/person_sameAs",
+                        "label": "Person SameAs",
+                    },
+                    "source-ref": {
+                        "@id": "http://test.com/sources/source1",
+                        "label": "Source One",
+                    },
+                    "statement-refs": [
+                        {
+                            "@id": "http://test.com/statements/statement2",
+                            "label": "Statement Two",
+                        }
+                    ],
+                }
+            ],
+        ],
+    }

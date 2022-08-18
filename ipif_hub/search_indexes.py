@@ -46,7 +46,7 @@ Fields to sort by:
 ✅ name
 ✅ from
 ✅ to
-place
+✅ place
 
 """
 SORT_LAST = "ZZZZZZZZ"
