@@ -215,8 +215,8 @@ class MergePersonSerializer(serializers.ModelSerializer):
 
         for person in instance.persons.all():
             if factoids := person.factoids.all():
-                return_data["factoid-refs"].append(
-                    FactoidRefSerializer(factoids, many=True).data
-                )
+                return_data["factoid-refs"] += FactoidRefSerializer(
+                    factoids, many=True
+                ).data
 
         return return_data

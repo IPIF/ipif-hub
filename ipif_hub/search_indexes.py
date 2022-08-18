@@ -8,12 +8,13 @@ from haystack import indexes
 
 from ipif_hub.serializers import (
     FactoidSerializer,
+    MergePersonSerializer,
     PersonSerializer,
     SourceSerializer,
     StatementSerializer,
 )
 
-from .models import Person, Source, Factoid, Statement
+from .models import MergePerson, Person, Source, Factoid, Statement
 
 
 TEMPLATE_DIR = os.path.join(
@@ -353,6 +354,44 @@ class StatementIndex(BaseIndex, indexes.Indexable):
 
     def get_model(self):
         return Statement
+
+
+class MergePersonIndex(indexes.SearchIndex, indexes.Indexable):
+    def get_model(self):
+        return MergePerson
+
+    def prepare_uris(self, inst):
+        return list(inst.uri_set)
+
+    text = indexes.CharField(document=True, use_template=True)
+
+    identifier = indexes.CharField(model_attr="id")
+    # local_id = indexes.CharField(model_attr="local_id")
+    ipif_type = indexes.CharField()
+    # label = indexes.CharField(model_attr="label")
+    pre_serialized = indexes.CharField()
+
+    def prepare_ipif_type(self, inst):
+        return self.get_model().__name__.lower()
+
+    def prepare_pre_serialized(self, inst):
+        serializer = MergePersonSerializer
+        return json.dumps(serializer(inst).data)
+
+    """
+    st = indexes.CharField(
+        use_template=True, template_name=get_template("statement_via_merge_person.txt")
+    )
+    f = indexes.CharField(
+        use_template=True, template_name=get_template("factoid_via_merge_person.txt")
+    )
+    s = indexes.CharField(
+        use_template=True, template_name=get_template("factoid_via_merge_person.txt")
+    )
+    p = indexes.CharField(
+        use_template=True, template_name=get_template("person_via_merge_person.txt")
+    )
+    """
 
 
 def searchQuerySet_to_querySet(sinst):

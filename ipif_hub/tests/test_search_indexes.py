@@ -2,21 +2,14 @@ import json
 
 import pytest
 
-from ipif_hub.tests.conftest import (
-    person,
-    source,
-    statement,
-    factoid,
-    place,
-    uri,
-    created_modified,
-)
+from ipif_hub.tests.conftest import created_modified
+
 
 from ipif_hub.models import Person, Source, Statement, Factoid
-from ipif_hub.search_indexes import PersonIndex
+from ipif_hub.search_indexes import MergePersonIndex, PersonIndex
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_entity_is_in_haystack(repo):
     """Test created person is pushed to Haystack on save"""
     p = Person(local_id="person1", ipif_repo=repo, **created_modified)
@@ -70,3 +63,24 @@ def test_adding_factoid_triggers_update_of_person_index(repo):
         pi_json["factoid-refs"][0]["statement-refs"][0]["@id"]
         == "http://test.com/statements/statement1"
     )
+
+
+@pytest.mark.django_db(transaction=True)
+def test_merge_person_created(
+    person,
+    statement,
+    source,
+    factoid,
+    person_sameAs,
+):
+    merge_persons = MergePersonIndex.objects.filter(ipif_type="mergeperson")
+    assert len(merge_persons) == 1
+
+    merge_person = merge_persons[0]
+
+    data = json.loads(merge_person.pre_serialized)
+
+    assert data
+    assert data["factoid-refs"]
+    print(data["factoid-refs"])
+    assert data["factoid-refs"][0]["@id"] == "http://test.com/factoids/factoid1"

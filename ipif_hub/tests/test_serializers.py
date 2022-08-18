@@ -148,7 +148,14 @@ def test_factoid_serializer(factoid):
 
 @pytest.mark.django_db(transaction=True)
 def test_merge_person_serializer(
-    repo, person, person_sameAs, factoid, factoid2, factoid3, source, statement
+    factoid,
+    factoid2,
+    factoid3,
+    source,
+    statement,
+    repo,
+    person,
+    person_sameAs,
 ):
 
     assert len(MergePerson.objects.all()) == 1
@@ -168,63 +175,59 @@ def test_merge_person_serializer(
         "modifiedWhen": "2022-08-18",
         "uris": ["http://alternative.com/person1"],
         "factoid-refs": [
-            [
-                {
-                    "@id": "http://test.com/factoids/factoid1",
-                    "label": "Factoid One",
-                    "person-ref": {
-                        "@id": "http://test.com/persons/person1",
-                        "label": "Person One",
-                    },
-                    "source-ref": {
-                        "@id": "http://test.com/sources/source1",
-                        "label": "Source One",
-                    },
-                    "statement-refs": [
-                        {
-                            "@id": "http://test.com/statements/statement1",
-                            "label": "Statement One",
-                        }
-                    ],
+            {
+                "@id": "http://test.com/factoids/factoid1",
+                "label": "Factoid One",
+                "person-ref": {
+                    "@id": "http://test.com/persons/person1",
+                    "label": "Person One",
                 },
-                {
-                    "@id": "http://test.com/factoids/factoid2",
-                    "label": "Factoid Two",
-                    "person-ref": {
-                        "@id": "http://test.com/persons/person1",
-                        "label": "Person One",
-                    },
-                    "source-ref": {
-                        "@id": "http://test.com/sources/source1",
-                        "label": "Source One",
-                    },
-                    "statement-refs": [
-                        {
-                            "@id": "http://test.com/statements/statement2",
-                            "label": "Statement Two",
-                        }
-                    ],
+                "source-ref": {
+                    "@id": "http://test.com/sources/source1",
+                    "label": "Source One",
                 },
-            ],
-            [
-                {
-                    "@id": "http://test.com/factoids/factoid3",
-                    "label": "Factoid Three",
-                    "person-ref": {
-                        "@id": "http://test2.com/persons/person_sameAs",
-                        "label": "Person SameAs",
-                    },
-                    "source-ref": {
-                        "@id": "http://test.com/sources/source1",
-                        "label": "Source One",
-                    },
-                    "statement-refs": [
-                        {
-                            "@id": "http://test.com/statements/statement2",
-                            "label": "Statement Two",
-                        }
-                    ],
-                }
-            ],
+                "statement-refs": [
+                    {
+                        "@id": "http://test.com/statements/statement1",
+                        "label": "Statement One",
+                    }
+                ],
+            },
+            {
+                "@id": "http://test.com/factoids/factoid2",
+                "label": "Factoid Two",
+                "person-ref": {
+                    "@id": "http://test.com/persons/person1",
+                    "label": "Person One",
+                },
+                "source-ref": {
+                    "@id": "http://test.com/sources/source1",
+                    "label": "Source One",
+                },
+                "statement-refs": [
+                    {
+                        "@id": "http://test.com/statements/statement2",
+                        "label": "Statement Two",
+                    }
+                ],
+            },
+            {
+                "@id": "http://test.com/factoids/factoid3",
+                "label": "Factoid Three",
+                "person-ref": {
+                    "@id": "http://test2.com/persons/person_sameAs",
+                    "label": "Person SameAs",
+                },
+                "source-ref": {
+                    "@id": "http://test.com/sources/source1",
+                    "label": "Source One",
+                },
+                "statement-refs": [
+                    {
+                        "@id": "http://test.com/statements/statement2",
+                        "label": "Statement Two",
+                    }
+                ],
+            },
         ],
     }

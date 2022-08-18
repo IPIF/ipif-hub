@@ -15,6 +15,7 @@ from ipif_hub.tasks import (
     update_person_index,
     update_source_index,
     update_statement_index,
+    update_merge_person_index,
 )
 
 
@@ -122,8 +123,8 @@ def handle_delete_person_updating_merge_persons(person_to_delete: Person) -> Non
 
 @receiver(m2m_changed, sender=MergePerson.persons.through)
 def merge_person_m2m_changed(sender, instance, **kwargs):
-    # TODO: TRIGGER INDEXING OF MergePerson
-    pass
+    print(instance)
+    transaction.on_commit(lambda: update_merge_person_index(instance.pk))
 
 
 # Off the top of my head, it should not be necessary to index
@@ -147,7 +148,7 @@ def factoid_post_save(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Person)
 def person_post_save(sender, instance, **kwargs):
-
+    # handle_merge_person_from_person_update(instance)
     transaction.on_commit(lambda: update_person_index.delay(instance.pk))
 
 
@@ -155,11 +156,12 @@ def person_post_save(sender, instance, **kwargs):
 def person_m2m_changed(sender, instance, **kwargs):
 
     handle_merge_person_from_person_update(instance)
+    transaction.on_commit(lambda: update_person_index.delay(instance.pk))
 
 
 @receiver(pre_delete, sender=Person)
 def person_pre_delete(sender, instance, **kwargs):
-    print(instance)
+
     handle_delete_person_updating_merge_persons(instance)
 
 
