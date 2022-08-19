@@ -378,20 +378,21 @@ class MergePersonIndex(indexes.SearchIndex, indexes.Indexable):
         serializer = MergePersonSerializer
         return json.dumps(serializer(inst).data)
 
-    """
     st = indexes.CharField(
-        use_template=True, template_name=get_template("statement_via_merge_person.txt")
+        use_template=True, template_name=get_template("statements_via_merge_person.txt")
     )
+
     f = indexes.CharField(
-        use_template=True, template_name=get_template("factoid_via_merge_person.txt")
+        use_template=True, template_name=get_template("factoids_via_merge_person.txt")
     )
+
     s = indexes.CharField(
-        use_template=True, template_name=get_template("factoid_via_merge_person.txt")
+        use_template=True, template_name=get_template("sources_via_merge_person.txt")
     )
+
     p = indexes.CharField(
-        use_template=True, template_name=get_template("person_via_merge_person.txt")
+        use_template=True, template_name=get_template("persons_via_merge_person.txt")
     )
-    """
 
 
 def searchQuerySet_to_querySet(sinst):

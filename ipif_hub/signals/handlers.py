@@ -55,7 +55,7 @@ def handle_merge_person_from_person_update(new_person):
         new_merged_person.persons.add(*all_persons, new_person)
 
 
-def merge(persons: list, results=None) -> Any:
+def merge_uri_sets(persons: list, results=None) -> Any:
     """This code suggested by Philipp Petersen
     (https://ufind.univie.ac.at/de/person.html?id=109645)
 
@@ -102,7 +102,7 @@ def handle_delete_person_updating_merge_persons(person_to_delete: Person) -> Non
         [uri.uri for uri in person.uris.all()] for person in remaining_persons
     ]
     print(uris_to_group)
-    merged_uri_groups: List[list] = merge(uris_to_group)
+    merged_uri_groups: List[list] = merge_uri_sets(uris_to_group)
 
     for uri_group in merged_uri_groups:
         persons = (
@@ -154,6 +154,9 @@ def person_post_save(sender, instance, **kwargs):
 
 @receiver(m2m_changed, sender=Person.uris.through)
 def person_m2m_changed(sender, instance, **kwargs):
+    """TODO: If a URI is removed from a person, we need to see whether this has broken
+    any merge-persons. So, we run the merge_uri_sets to check whether there is more
+    than one set: if so, delete the original merge_person and create new ones; otherwise, it's fine."""
 
     handle_merge_person_from_person_update(instance)
     transaction.on_commit(lambda: update_person_index.delay(instance.pk))
