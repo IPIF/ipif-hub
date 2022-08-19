@@ -157,7 +157,7 @@ def person_sameAs(repo2, alt_uri):
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
-def person2(repo):
+def person2(repo, alt_uri):
     p = Person(
         local_id="person2", label="Person Two", ipif_repo=repo, **created_modified
     )
