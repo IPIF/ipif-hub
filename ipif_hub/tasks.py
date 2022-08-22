@@ -39,14 +39,14 @@ def update_merge_person_index(instance_pk):
 
 @shared_task
 def update_factoid_index(instance_pk):
-    print("CALLED!!!")
+
     logger.debug(msg=instance_pk)
     factoid_searches = FactoidIndex.objects.filter(django_id=instance_pk)
     for factoid_search in factoid_searches:
         factoid_search.searchindex.update_object(Factoid.objects.get(pk=instance_pk))
 
     person = Factoid.objects.get(pk=instance_pk).person
-    print(person)
+
     person_searches = PersonIndex.objects.filter(django_id=person.pk)
     for person_search in person_searches:
         person_search.searchindex.update_object(person)

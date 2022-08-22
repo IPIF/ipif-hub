@@ -18,7 +18,13 @@ import datetime
 from dateutil.parser import parse as parse_date
 
 from .models import Factoid, Person, Source, Statement, IpifEntityAbstractBase
-from .search_indexes import PersonIndex, FactoidIndex, SourceIndex, StatementIndex
+from .search_indexes import (
+    MergePersonIndex,
+    PersonIndex,
+    FactoidIndex,
+    SourceIndex,
+    StatementIndex,
+)
 from .serializers import (
     FactoidSerializer,
     PersonSerializer,
@@ -336,12 +342,14 @@ def retrieve_view(object_class):
                 },
             )
 
+        ipif_type = object_class.__name__.lower()
         index = globals()[f"{object_class.__name__}Index"]
+        if not repo and object_class.__name__ == "Person":
+            index = MergePersonIndex
+            ipif_type = "mergeperson"
 
-        sq = (
-            SQ(id=f"ipif_hub.{object_class.__name__.lower()}.{pk}")
-            | SQ(uris=pk)
-            | (SQ(local_id=pk) & SQ(ipif_type=object_class.__name__.lower()))
+        sq = SQ(ipif_type=ipif_type) & (
+            SQ(identifier=pk) | SQ(uris=pk) | (SQ(local_id=pk))
         )
 
         if repo:

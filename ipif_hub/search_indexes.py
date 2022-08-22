@@ -360,13 +360,11 @@ class MergePersonIndex(indexes.SearchIndex, indexes.Indexable):
     def get_model(self):
         return MergePerson
 
-    def prepare_uris(self, inst):
-        return list(inst.uri_set)
-
     text = indexes.CharField(document=True, use_template=True)
 
     identifier = indexes.CharField(model_attr="id")
-    # local_id = indexes.CharField(model_attr="local_id")
+    local_id = indexes.CharField(model_attr="id")
+    uris = indexes.MultiValueField()
     ipif_type = indexes.CharField()
     # label = indexes.CharField(model_attr="label")
     pre_serialized = indexes.CharField()
@@ -413,6 +411,9 @@ class MergePersonIndex(indexes.SearchIndex, indexes.Indexable):
 
     sort_from = indexes.DateTimeField()
     sort_to = indexes.DateTimeField()
+
+    def prepare_uris(self, inst):
+        return list(inst.uri_set)
 
     def prepare_ipif_type(self, inst):
         return self.get_model().__name__.lower()

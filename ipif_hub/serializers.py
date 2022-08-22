@@ -169,6 +169,7 @@ class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
             "ipif_repo",
             "hubIngestedWhen",
             "hubModifiedWhen",
+            "id",
         ]
 
     def to_representation(self, instance):
@@ -205,6 +206,7 @@ class MergePersonSerializer(serializers.ModelSerializer):
         exclude = ["persons"]
 
     def to_representation(self, instance: MergePerson):
+
         data = super().to_representation(instance)
         id = data.pop("id")
 

@@ -101,7 +101,7 @@ def handle_delete_person_updating_merge_persons(person_to_delete: Person) -> Non
     uris_to_group = [
         [uri.uri for uri in person.uris.all()] for person in remaining_persons
     ]
-    print(uris_to_group)
+
     merged_uri_groups: List[list] = merge_uri_sets(uris_to_group)
 
     for uri_group in merged_uri_groups:
@@ -123,7 +123,7 @@ def handle_delete_person_updating_merge_persons(person_to_delete: Person) -> Non
 
 @receiver(m2m_changed, sender=MergePerson.persons.through)
 def merge_person_m2m_changed(sender, instance, **kwargs):
-    print(instance)
+
     transaction.on_commit(lambda: update_merge_person_index(instance.pk))
 
 

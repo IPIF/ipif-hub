@@ -129,7 +129,7 @@ def alt_uri():
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
-def person(repo, alt_uri):
+def person(repo, alt_uri) -> Person:
     p = Person(
         local_id="person1", label="Person One", ipif_repo=repo, **created_modified
     )

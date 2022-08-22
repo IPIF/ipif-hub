@@ -25,6 +25,7 @@ from ipif_hub.api_views import (
 from ipif_hub.models import Factoid, Person, Source, Statement
 from ipif_hub.serializers import (
     FactoidSerializer,
+    MergePersonSerializer,
     PersonSerializer,
     SourceSerializer,
     StatementSerializer,
@@ -136,18 +137,50 @@ def test_build_viewset():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_retrieve_view_with_id_as_uri(person, factoid):
+def test_statement_retrieve_view_with_id_as_uri(statement, source, person, factoid):
     # The response data should be the same as this
-    serialized_data = PersonSerializer(person).data
+    serialized_data = StatementSerializer(statement).data
+
+    vs = StatementViewSet()
+
+    req = build_request_with_params()
+
+    response = vs.retrieve(request=req, pk=statement.identifier)
+    assert isinstance(response, (Response,))
+
+    # The response we get back is the same as was serialized
+    assert response.data == serialized_data
+
+
+@pytest.mark.django_db(transaction=True)
+def test_factoid_retrieve_view_with_id_as_uri(statement, source, person, factoid):
+    # The response data should be the same as this
+    serialized_data = FactoidSerializer(factoid).data
+
+    vs = FactoidViewSet()
+
+    req = build_request_with_params()
+
+    response = vs.retrieve(request=req, pk=statement.identifier)
+    assert isinstance(response, (Response,))
+
+    # The response we get back is the same as was serialized
+    print(response.data)
+    assert response.data == serialized_data
+
+
+@pytest.mark.django_db(transaction=True)
+def test_person_retrieve_view_returns_merge_person(source, statement, factoid, person):
+    serialized_data = MergePersonSerializer(person.merge_person.first()).data
 
     vs = PersonViewSet()
 
     req = build_request_with_params()
 
     response = vs.retrieve(request=req, pk=person.identifier)
+
     assert isinstance(response, (Response,))
 
-    # The response we get back is the same as was serialized
     assert response.data == serialized_data
 
 
@@ -165,6 +198,19 @@ def test_retrieve_view_with_local_id_and_repo(person, factoid):
 
     # The response we get back is the same as was serialized
     assert response.data == serialized_data
+
+
+@pytest.mark.django_db(transaction=True)
+def test_list_view_with_id_params_raises_error_when_id_and_no_repo(factoid, person):
+    vs = PersonViewSet()
+
+    req = build_request_with_params(sourceId="source1")
+    response = vs.list(request=req)
+    assert response.status_code == 400
+
+    req = build_request_with_params(sourceId="source1")
+    response = vs.list(request=req, repo="testrepo")
+    assert response.status_code == 200
 
 
 @pytest.mark.django_db(transaction=True)
@@ -424,19 +470,6 @@ def test_list_view_with_id_params_works_with_local_id_and_repo(factoid, person):
     response = vs.list(request=req, repo="testrepo")
     assert response.status_code == 200
     assert response.data == [PersonSerializer(person).data]
-
-
-@pytest.mark.django_db(transaction=True)
-def test_list_view_with_id_params_raises_error_when_id_and_no_repo(factoid, person):
-    vs = PersonViewSet()
-
-    req = build_request_with_params(sourceId="source1")
-    response = vs.list(request=req)
-    assert response.status_code == 400
-
-    req = build_request_with_params(sourceId="source1")
-    response = vs.list(request=req, repo="testrepo")
-    assert response.status_code == 200
 
 
 @pytest.mark.django_db(transaction=True)
