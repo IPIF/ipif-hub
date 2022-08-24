@@ -22,7 +22,7 @@ from ipif_hub.api_views import (
     query_dict,
     PersonViewSet,
 )
-from ipif_hub.models import Factoid, Person, Source, Statement
+from ipif_hub.models import Factoid, MergePerson, Person, Source, Statement
 from ipif_hub.serializers import (
     FactoidSerializer,
     MergePersonSerializer,
@@ -286,6 +286,20 @@ def test_list_view_basic_returns_item(person, factoid, statement, source):
 
     assert response.status_code == 200
     assert response.data == [SourceSerializer(source).data]
+
+
+@pytest.mark.django_db(transaction=True)
+def test_list_view_person_basic_returns_merge_person(
+    person, factoid, statement, source
+):
+    serialized_data = MergePersonSerializer(MergePerson.objects.all(), many=True).data
+
+    vs: PersonViewSet = PersonViewSet()
+    req = build_request_with_params()
+
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == serialized_data
 
 
 @pytest.mark.django_db(transaction=True)

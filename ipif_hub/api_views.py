@@ -8,34 +8,29 @@ from django.core.validators import URLValidator
 from django.forms import ValidationError
 
 from rest_framework import viewsets
+from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.decorators import renderer_classes
 
 from haystack.query import SQ, SearchQuerySet
-from haystack.inputs import Raw
+
 
 import datetime
 from dateutil.parser import parse as parse_date
 
-from .models import Factoid, Person, Source, Statement, IpifEntityAbstractBase
-from .search_indexes import (
+from ipif_hub.models import Factoid, Person, Source, Statement, IpifEntityAbstractBase
+from ipif_hub.search_indexes import (
     MergePersonIndex,
     PersonIndex,
     FactoidIndex,
     SourceIndex,
     StatementIndex,
 )
-from .serializers import (
-    FactoidSerializer,
-    PersonSerializer,
-    SourceSerializer,
-    StatementSerializer,
-)
+
 
 url_validate = URLValidator()
 
 
-def is_uri(s):
+def is_uri(s: str):
     try:
         url_validate(s)
         return True
@@ -43,7 +38,7 @@ def is_uri(s):
         return False
 
 
-def build_statement_filters(request) -> List[Q]:
+def build_statement_filters(request: Request) -> List[Q]:
     """
     Builds a list of statement filters
 
@@ -181,8 +176,13 @@ def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
         else:
             sort_string = f"{sort_order}sort_{sortBy}"
 
-        # Restrict by type
-        solr_lookup_dict = {"ipif_type": object_class.__name__.lower()}
+        ipif_type = object_class.__name__.lower()
+        index = globals()[f"{object_class.__name__}Index"]
+        if not repo and object_class.__name__ == "Person":
+            index = MergePersonIndex
+            ipif_type = "mergeperson"
+
+        solr_lookup_dict = {"ipif_type": ipif_type}
         # Build lookup dict for fulltext search parameters
         for p in ["st", "s", "f", "p"]:
             if param := request_params.pop(p, None):
@@ -365,7 +365,7 @@ def retrieve_view(object_class):
 
 def build_viewset(object_class: Type[IpifEntityAbstractBase]) -> Type[viewsets.ViewSet]:
     viewset_name = f"{object_class.__name__}ViewSet"
-    # serializer = globals()[f"{object_class.__name__}Serializer"]
+
     vs: Type[viewsets.ViewSet] = type(
         viewset_name,
         (viewsets.ViewSet,),
