@@ -1,18 +1,7 @@
-import datetime
-import json
-
 import pytest
 from django.db import IntegrityError
 
-from ipif_hub.models import (
-    Factoid,
-    IpifRepo,
-    MergePerson,
-    MergeSource,
-    Person,
-    Source,
-    Statement,
-)
+from ipif_hub.models import IpifRepo, MergePerson, Person
 from ipif_hub.tests.conftest import created_modified, test_repo_no_slug
 
 # from ipif_hub.search_indexes import PersonIndex

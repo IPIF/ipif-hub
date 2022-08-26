@@ -1,6 +1,4 @@
 import datetime
-from copy import deepcopy
-from typing import Dict
 
 import pytest
 
@@ -74,6 +72,7 @@ def test_ingest_person_with_valid_data(repo: IpifRepo, person1_data: dict):
 
     p: Person = Person.objects.get(pk="http://test.com/persons/Person1")
     assert p
+    assert p.uris
     assert p.uris.first().uri == "http://other.com/person1"
     assert p.local_id == "Person1"
     assert p.createdBy == "Researcher1"

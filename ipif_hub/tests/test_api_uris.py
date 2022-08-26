@@ -7,15 +7,6 @@ from ipif_hub.serializers import (
     SourceSerializer,
     StatementSerializer,
 )
-from ipif_hub.tests.conftest import (
-    factoid,
-    factoid2,
-    person,
-    person2,
-    source,
-    statement,
-    statement2,
-)
 
 
 @pytest.mark.django_db(transaction=True)

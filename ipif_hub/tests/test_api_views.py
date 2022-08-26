@@ -1,6 +1,4 @@
 import datetime
-import json
-from typing import Dict
 from urllib.parse import urlencode
 
 import pytest
@@ -27,15 +25,6 @@ from ipif_hub.serializers import (
     PersonSerializer,
     SourceSerializer,
     StatementSerializer,
-)
-from ipif_hub.tests.conftest import (
-    factoid,
-    factoid2,
-    person,
-    person2,
-    source,
-    statement,
-    statement2,
 )
 
 
