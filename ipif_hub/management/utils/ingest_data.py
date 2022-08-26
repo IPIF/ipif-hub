@@ -126,7 +126,7 @@ def ingest_statement(data, ipif_repo):
                     try:
                         person = Person.objects.get(
                             id=person_to_set["uri"]
-                        )  ### MODIFY TO LOOK FOR URIS WELL...
+                        )  ### TODO: MODIFY TO LOOK FOR URIS WELL...
 
                     except Person.DoesNotExist:
 
@@ -208,7 +208,7 @@ def ingest_statement(data, ipif_repo):
                 try:
                     person = Person.objects.get(
                         pk=person_to_set["uri"]
-                    )  ### MODIFY TO LOOK FOR URIS WELL...
+                    )  ### TODO: MODIFY TO LOOK FOR URIS WELL...
                 except Person.DoesNotExist:
                     person = Person(
                         id=person_to_set["uri"],
@@ -484,10 +484,10 @@ def ingest_data(endpoint_slug, data):
 
     try:
         ingest_statements(data["statements"], ipif_repo)
-    except KeyError as e:
+    except KeyError:
         raise DataFormatError("IPIF JSON is missing 'statements' field")
 
     try:
         ingest_factoids(data["factoids"], ipif_repo)
-    except KeyError as e:
+    except KeyError:
         raise DataFormatError("IPIF JSON is missing 'statements' field")
