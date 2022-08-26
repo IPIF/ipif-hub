@@ -13,15 +13,7 @@ from ipif_hub.models import (
     Source,
     Statement,
 )
-from ipif_hub.tests.conftest import (
-    created_modified,
-    mute_signals,
-    person,
-    person_sameAs,
-    repo,
-    repo2,
-    test_repo_no_slug,
-)
+from ipif_hub.tests.conftest import created_modified, test_repo_no_slug
 
 # from ipif_hub.search_indexes import PersonIndex
 

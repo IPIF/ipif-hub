@@ -14,7 +14,6 @@ from ipif_hub.management.utils.ingest_data import (
     ingest_statement,
 )
 from ipif_hub.models import (
-    URI,
     Factoid,
     IpifRepo,
     Person,
@@ -22,11 +21,6 @@ from ipif_hub.models import (
     Statement,
     get_ipif_hub_repo_AUTOCREATED_instance,
 )
-from ipif_hub.tests.conftest import factoid, repo
-
-"""
-TEST PERSON INGESTION
-"""
 
 
 @pytest.fixture
