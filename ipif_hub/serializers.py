@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from ipif_hub.models import MergePerson, Person, URI, Factoid, Place, Source, Statement
+from ipif_hub.models import URI, Factoid, MergePerson, Person, Place, Source, Statement
 
 
 class URISerlializer(serializers.ModelSerializer):

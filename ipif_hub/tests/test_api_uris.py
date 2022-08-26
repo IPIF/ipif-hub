@@ -1,20 +1,20 @@
 import pytest
 from rest_framework.test import APIClient
-from ipif_hub.serializers import (
-    PersonSerializer,
-    StatementSerializer,
-    SourceSerializer,
-    FactoidSerializer,
-)
 
+from ipif_hub.serializers import (
+    FactoidSerializer,
+    PersonSerializer,
+    SourceSerializer,
+    StatementSerializer,
+)
 from ipif_hub.tests.conftest import (
     factoid,
+    factoid2,
     person,
+    person2,
     source,
     statement,
-    person2,
     statement2,
-    factoid2,
 )
 
 

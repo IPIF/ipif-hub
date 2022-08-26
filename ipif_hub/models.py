@@ -1,12 +1,12 @@
 from datetime import datetime
-from tkinter import Entry
 from typing import Set, Union
 from uuid import uuid4
-from django.db import models
+
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
+from django.db import models
 from django.forms import ValidationError
-from django.contrib.auth.models import PermissionsMixin
-from django.contrib.auth.base_user import AbstractBaseUser
 
 
 class IpifEntityAbstractBase(models.Model):
@@ -14,7 +14,7 @@ class IpifEntityAbstractBase(models.Model):
         abstract = True
         unique_together = [["local_id", "ipif_repo", "identifier"]]
 
-    id = models.UUIDField(
+    id: models.UUIDField = models.UUIDField(
         primary_key=True, editable=False, default=uuid4, db_index=True
     )
 
@@ -23,28 +23,30 @@ class IpifEntityAbstractBase(models.Model):
     # way to look things up... but also useful as it allows canonical URIs to be used
     # as identifiers. If this were the pk, two projects could not use the same URI.
     # Consequently, we now need to qualify all lookups with the repo id!
-    identifier = models.URLField(
+    identifier: models.URLField = models.URLField(
         default="http://noneset.com", editable=False, db_index=True
     )
 
-    local_id = models.CharField(max_length=50, blank=True, db_index=True)
-    ipif_repo = models.ForeignKey(
+    local_id: models.CharField = models.CharField(
+        max_length=50, blank=True, db_index=True
+    )
+    ipif_repo: models.ForeignKey = models.ForeignKey(
         "IpifRepo",
         verbose_name="IPIF Repository",
         on_delete=models.CASCADE,
         db_index=True,
     )
-    label = models.CharField(max_length=300, default="", blank=True)
+    label: models.CharField = models.CharField(max_length=300, default="", blank=True)
 
-    createdBy = models.CharField(max_length=300)
-    createdWhen = models.DateField()
-    modifiedBy = models.CharField(max_length=300)
-    modifiedWhen = models.DateField()
+    createdBy: models.CharField = models.CharField(max_length=300)
+    createdWhen: models.DateField = models.DateField()
+    modifiedBy: models.CharField = models.CharField(max_length=300)
+    modifiedWhen: models.DateField = models.DateField()
 
-    hubIngestedWhen = models.DateTimeField(auto_now_add=True)
-    hubModifiedWhen = models.DateTimeField(auto_now=True)
+    hubIngestedWhen: models.DateTimeField = models.DateTimeField(auto_now_add=True)
+    hubModifiedWhen: models.DateTimeField = models.DateTimeField(auto_now=True)
 
-    inputContentHash = models.CharField(max_length=60, default="")
+    inputContentHash: models.CharField = models.CharField(max_length=60, default="")
 
     def build_uri_id_from_slug(self, id: str) -> str:
         """Returns the full IPIF-compliant URL version of the entity"""
@@ -70,7 +72,7 @@ class IpifEntityAbstractBase(models.Model):
 
 
 class URI(models.Model):
-    uri = models.URLField(db_index=True)
+    uri: models.URLField = models.URLField(db_index=True)
 
     def __str__(self):
         return self.uri
@@ -80,17 +82,21 @@ class AbstractMergeEntity(models.Model):
     class Meta:
         abstract = True
 
-    id = models.UUIDField(
+    id: models.UUIDField = models.UUIDField(
         primary_key=True, editable=False, default=uuid4, db_index=True
     )
-    createdBy = models.CharField(max_length=300)
-    createdWhen = models.DateField()
-    modifiedBy = models.CharField(max_length=300)
-    modifiedWhen = models.DateField()
+    createdBy: models.CharField = models.CharField(max_length=300)
+    createdWhen: models.DateField = models.DateField()
+    modifiedBy: models.CharField = models.CharField(max_length=300)
+    modifiedWhen: models.DateField = models.DateField()
 
     @property
     def uri_set(self) -> Set:
         return {uri.uri for uri in self.uris.distinct()}
+
+    @property
+    def uris(self):
+        raise NotImplementedError
 
 
 class MergePerson(AbstractMergeEntity):
@@ -155,8 +161,10 @@ class Person(IpifEntityAbstractBase):
 
 class Statement(IpifEntityAbstractBase):
 
-    statementType_uri = models.URLField(blank=True, null=True, db_index=True)
-    statementType_label = models.CharField(
+    statementType_uri: models.URLField = models.URLField(
+        blank=True, null=True, db_index=True
+    )
+    statementType_label: models.CharField = models.CharField(
         max_length=300, blank=True, null=True, db_index=True
     )
 
@@ -203,11 +211,6 @@ class Place(models.Model):
 
     def __str__(self):
         return f"{self.label} ({self.uri})"
-
-
-from django.contrib.auth.models import User
-from django.core.validators import MinLengthValidator
-from django.core.exceptions import ValidationError
 
 
 class IpifRepo(models.Model):

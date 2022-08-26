@@ -1,31 +1,25 @@
-from dataclasses import field
-from itertools import islice
+import datetime
 import json
+from itertools import islice
 from typing import Callable, List, Type
 
-from django.db.models import Q
+from dateutil.parser import parse as parse_date
 from django.core.validators import URLValidator
+from django.db.models import Q
 from django.forms import ValidationError
-
+from haystack.query import SQ, SearchQuerySet
 from rest_framework import viewsets
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from haystack.query import SQ, SearchQuerySet
-
-
-import datetime
-from dateutil.parser import parse as parse_date
-
-from ipif_hub.models import Factoid, Person, Source, Statement, IpifEntityAbstractBase
+from ipif_hub.models import Factoid, IpifEntityAbstractBase, Person, Source, Statement
 from ipif_hub.search_indexes import (
+    FactoidIndex,
     MergePersonIndex,
     PersonIndex,
-    FactoidIndex,
     SourceIndex,
     StatementIndex,
 )
-
 
 url_validate = URLValidator()
 

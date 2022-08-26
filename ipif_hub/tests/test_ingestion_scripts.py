@@ -1,27 +1,27 @@
-from copy import deepcopy
 import datetime
+from copy import deepcopy
 from typing import Dict
+
 import pytest
 
+from ipif_hub.management.utils.ingest_data import (
+    NO_CHANGE_TO_DATA,
+    DataFormatError,
+    DataIntegrityError,
+    ingest_data,
+    ingest_factoid,
+    ingest_person_or_source,
+    ingest_statement,
+)
 from ipif_hub.models import (
+    URI,
     Factoid,
     IpifRepo,
     Person,
     Source,
-    URI,
     Statement,
     get_ipif_hub_repo_AUTOCREATED_instance,
 )
-from ipif_hub.management.utils.ingest_data import (
-    DataFormatError,
-    DataIntegrityError,
-    ingest_factoid,
-    ingest_person_or_source,
-    ingest_statement,
-    ingest_data,
-    NO_CHANGE_TO_DATA,
-)
-
 from ipif_hub.tests.conftest import factoid, repo
 
 """

@@ -1,12 +1,19 @@
 import datetime
+import sys
 from io import StringIO
 
-import sys
-
 from celery import shared_task
-
 from celery.utils.log import get_task_logger
 
+from ipif_hub.management.utils.ingest_data import ingest_data
+from ipif_hub.models import (
+    Factoid,
+    IngestionJob,
+    MergePerson,
+    Person,
+    Source,
+    Statement,
+)
 from ipif_hub.search_indexes import (
     FactoidIndex,
     MergePersonIndex,
@@ -14,16 +21,6 @@ from ipif_hub.search_indexes import (
     SourceIndex,
     StatementIndex,
 )
-from ipif_hub.models import (
-    Factoid,
-    MergePerson,
-    Person,
-    Source,
-    Statement,
-    IngestionJob,
-)
-from ipif_hub.management.utils.ingest_data import ingest_data
-
 
 logger = get_task_logger(__name__)
 

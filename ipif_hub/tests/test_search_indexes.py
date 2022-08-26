@@ -2,11 +2,9 @@ import json
 
 import pytest
 
-from ipif_hub.tests.conftest import created_modified
-
-
-from ipif_hub.models import Person, Source, Statement, Factoid
+from ipif_hub.models import Factoid, Person, Source, Statement
 from ipif_hub.search_indexes import MergePersonIndex, PersonIndex
+from ipif_hub.tests.conftest import created_modified
 
 
 @pytest.mark.django_db()

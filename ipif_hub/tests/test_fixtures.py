@@ -1,4 +1,5 @@
 import pytest
+
 from ipif_hub.models import Factoid
 
 

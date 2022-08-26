@@ -2,4 +2,15 @@
     "python.linting.mypyEnabled": true,
     "python.linting.enabled": true,
     "python.linting.flake8Enabled": true,
+
+
+
+
+
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true
+    },
+
+  "isort.args":["--profile", "black"],
 }

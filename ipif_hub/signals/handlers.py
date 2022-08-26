@@ -1,21 +1,19 @@
 import datetime
 import itertools
-from typing import List, Any
+from typing import Any, List
 
 import numpy as np
-
-from django.db.models.signals import post_save, m2m_changed, pre_delete
-from django.dispatch import receiver
 from django.db import transaction
-from ipif_hub.models import Person, Source, Statement, Factoid, MergePerson, MergeSource
+from django.db.models.signals import m2m_changed, post_save, pre_delete
+from django.dispatch import receiver
 
-
+from ipif_hub.models import Factoid, MergePerson, MergeSource, Person, Source, Statement
 from ipif_hub.tasks import (
     update_factoid_index,
+    update_merge_person_index,
     update_person_index,
     update_source_index,
     update_statement_index,
-    update_merge_person_index,
 )
 
 

@@ -1,20 +1,19 @@
 import pytest
+
 from ipif_hub.models import MergePerson
-
 from ipif_hub.serializers import (
-    PersonRefSerializer,
-    SourceRefSerializer,
-    StatementRefSerializer,
     FactoidRefSerializer,
-    PersonSerializer,
-    SourceSerializer,
-    StatementSerializer,
     FactoidSerializer,
-    PlaceSerializer,
-    URISerlializer,
     MergePersonSerializer,
+    PersonRefSerializer,
+    PersonSerializer,
+    PlaceSerializer,
+    SourceRefSerializer,
+    SourceSerializer,
+    StatementRefSerializer,
+    StatementSerializer,
+    URISerlializer,
 )
-
 from ipif_hub.tests.conftest import created_modified
 
 

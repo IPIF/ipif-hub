@@ -4,23 +4,21 @@ from typing import Dict
 from urllib.parse import urlencode
 
 import pytest
-from pytest_django.asserts import assertNumQueries
-
 from django.db.models import Q
+from pytest_django.asserts import assertNumQueries
+from rest_framework import viewsets
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.test import APIRequestFactory
-from rest_framework import viewsets
-
 
 from ipif_hub.api_views import (
     FactoidViewSet,
+    PersonViewSet,
     SourceViewSet,
     StatementViewSet,
     build_statement_filters,
     build_viewset,
     query_dict,
-    PersonViewSet,
 )
 from ipif_hub.models import Factoid, MergePerson, Person, Source, Statement
 from ipif_hub.serializers import (
@@ -32,12 +30,12 @@ from ipif_hub.serializers import (
 )
 from ipif_hub.tests.conftest import (
     factoid,
+    factoid2,
     person,
+    person2,
     source,
     statement,
-    person2,
     statement2,
-    factoid2,
 )
 
 

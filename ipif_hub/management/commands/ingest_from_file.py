@@ -1,10 +1,11 @@
 import json
+
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 
 from ipif_hub.management.utils.ingest_data import (
-    ingest_data,
     DataFormatError,
     DataIntegrityError,
+    ingest_data,
 )
 
 

@@ -1,6 +1,8 @@
 [flake8]
-ignore = D203 W504
+ignore = D203 W504 E203 E501 W503
 max-line-length = 120
+select = B,C,E,F,W,B9 
+
 exclude =
     */migrations,
     manage.py

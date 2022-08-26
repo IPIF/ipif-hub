@@ -1,11 +1,10 @@
 import datetime
 import json
 import os
-from re import L
 
 from haystack import indexes
 
-
+from ipif_hub.models import Factoid, MergePerson, Person, Source, Statement
 from ipif_hub.serializers import (
     FactoidSerializer,
     MergePersonSerializer,
@@ -13,9 +12,6 @@ from ipif_hub.serializers import (
     SourceSerializer,
     StatementSerializer,
 )
-
-from .models import MergePerson, Person, Source, Factoid, Statement
-
 
 TEMPLATE_DIR = os.path.join(
     os.path.dirname(__file__), "templates", "search", "indexes", "ipif_hub"

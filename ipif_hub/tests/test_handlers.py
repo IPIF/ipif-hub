@@ -2,9 +2,7 @@ import pytest
 
 from ipif_hub.models import URI, MergePerson, Person
 from ipif_hub.signals.handlers import handle_merge_person_from_person_update
-from ipif_hub.tests.conftest import (
-    created_modified,
-)
+from ipif_hub.tests.conftest import created_modified
 
 
 @pytest.mark.django_db(transaction=True)
