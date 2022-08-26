@@ -6,6 +6,11 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from jsonschema import validate
 
+from ipif_hub.management.utils.ingest_schemas import (
+    FACTOID_SCHEMA,
+    PERSON_SOURCE_SCHEMA,
+    STATEMENT_SCHEMA,
+)
 from ipif_hub.models import (
     URI,
     Factoid,
@@ -15,13 +20,6 @@ from ipif_hub.models import (
     Source,
     Statement,
     get_ipif_hub_repo_AUTOCREATED_instance,
-)
-
-from .ingest_schemas import (
-    FACTOID_SCHEMA,
-    FLAT_LIST_SCHEMA,
-    PERSON_SOURCE_SCHEMA,
-    STATEMENT_SCHEMA,
 )
 
 ipif_hub_repo_AUTOCREATED = get_ipif_hub_repo_AUTOCREATED_instance()

@@ -17,15 +17,19 @@ class Command(BaseCommand):
         parser.add_argument("file_path", type=str)
 
     def handle(
-        self, *args, endpoint_id: str = None, file_path: str = None, **options
+        self,
+        *args,
+        endpoint_id: str = None,
+        file_path: str = None,
+        **options,
     ) -> None:
         try:
-            with open(file_path, "r") as f:
+            with open(str(file_path), "r") as f:
                 data = json.load(f)
         except json.JSONDecodeError:
-            raise CommandError(f"{file_path} is not valid JSON")
+            raise CommandError(f"'{str(file_path)}' is not valid JSON")
         except FileNotFoundError:
-            raise CommandError(f"'{file_path}' does not exist")
+            raise CommandError(f"'{str(file_path)}' does not exist")
 
         try:
             ingest_data(endpoint_id, data)

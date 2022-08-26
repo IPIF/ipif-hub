@@ -1,8 +1,10 @@
 import json
+import uuid
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import User
+from django.contrib.sites.shortcuts import get_current_site
 from django.shortcuts import redirect, render
 from django.views import View
 from django_email_verification import send_email
@@ -12,7 +14,6 @@ from rest_framework import response as DRF_response
 from rest_framework import views as DRF_views
 
 from ipif_hub.forms import IpifRepoForm, UserForm
-from ipif_hub.management.utils.ingest_data import ingest_data
 from ipif_hub.management.utils.ingest_schemas import FLAT_LIST_SCHEMA
 from ipif_hub.models import IngestionJob, IpifRepo
 from ipif_hub.tasks import ingest_json_data_task
@@ -67,11 +68,11 @@ class IpifRepoEditView(View):
             return redirect("%s?next=%s" % (settings.LOGIN_URL, request.path))
 
         repo = IpifRepo.objects.get(pk=pk)
-        if not request.user in repo.owners.all():
+        if request.user not in repo.owners.all():
             messages.add_message(
                 request,
                 messages.ERROR,
-                f"You do not have permission to edit this repository.",
+                "You do not have permission to edit this repository.",
             )
             return redirect("view_repo", pk=repo.pk)
 
@@ -88,11 +89,11 @@ class IpifRepoEditView(View):
 
         repo = IpifRepo.objects.get(pk=pk)
 
-        if not request.user in repo.owners.all():
+        if request.user not in repo.owners.all():
             messages.add_message(
                 request,
                 messages.ERROR,
-                f"You do not have permission to edit this repository.",
+                "You do not have permission to edit this repository.",
             )
             return redirect("view_repo", pk=repo.pk)
 
@@ -125,11 +126,6 @@ def create_user(request):
     else:
         form = UserForm()
     return render(request, "ipif_hub/create_user.html", {"form": form})
-
-
-import uuid
-
-from django.contrib.sites.shortcuts import get_current_site
 
 
 class IngestionJobView(DRF_views.APIView):
@@ -166,7 +162,7 @@ class BatchUpload(DRF_views.APIView):
         try:
             data = json.loads(file_contents)
             validate(data, schema=FLAT_LIST_SCHEMA)
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError:
             return DRF_response.Response(
                 {"detail": "Uploaded file is not parseable as JSON"}, status=400
             )

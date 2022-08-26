@@ -1,7 +1,6 @@
 from django.urls import path
 
-from .models import IpifRepo
-from .views import (
+from ipif_hub.views import (
     BatchUpload,
     IngestionJobView,
     IpifRepoCreateView,

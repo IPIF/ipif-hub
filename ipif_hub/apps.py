@@ -6,4 +6,4 @@ class IpifHubConfig(AppConfig):
     name = "ipif_hub"
 
     def ready(self):
-        import ipif_hub.signals.handlers
+        import ipif_hub.signals.handlers  # noqa: F401
