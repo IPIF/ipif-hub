@@ -129,6 +129,14 @@ def alt_uri():
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
+def uriNotSameAs():
+    uri = URI(uri="http://notSameAs.com/person2")
+    uri.save()
+    return uri
+
+
+@pytest.fixture()
+@pytest.mark.django_db(transaction=True)
 def person(repo, alt_uri) -> Person:
     p = Person(
         local_id="person1", label="Person One", ipif_repo=repo, **created_modified
@@ -164,6 +172,20 @@ def person2(repo, alt_uri):
     p.save()
     p.uris.add(alt_uri)
     p.save()
+    return p
+
+
+@pytest.fixture()
+@pytest.mark.django_db(transaction=True)
+def personNotSameAs(repo, uriNotSameAs):
+    p = Person(
+        local_id="personNotSameAs",
+        label="Person NotSameAs",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    p.save()
+    p.uris.add(uriNotSameAs)
     return p
 
 
@@ -275,6 +297,23 @@ def factoid3(repo, person_sameAs, source, statement2):
         **created_modified,
     )
     f.person = person_sameAs
+    f.source = source
+    f.save()
+    f.statements.add(statement2)
+    f.save()
+    return f
+
+
+@pytest.fixture()
+@pytest.mark.django_db(transaction=True)
+def factoid4(repo, personNotSameAs, source, statement2):
+    f = Factoid(
+        local_id="factoid4",
+        label="Factoid Four",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    f.person = personNotSameAs
     f.source = source
     f.save()
     f.statements.add(statement2)

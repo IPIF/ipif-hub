@@ -66,7 +66,7 @@ def ingest_statement(data, ipif_repo):
     places_to_set = data.pop("places", [])
 
     try:  # If already exists
-        statement = Statement.objects.get(pk=qid)
+        statement = Statement.objects.get(identifier=qid)
 
         # Hash new content to see if different; if not, do not return
         if statement.inputContentHash == input_content_hash:
@@ -125,8 +125,8 @@ def ingest_statement(data, ipif_repo):
                 if person_to_set["uri"] not in current_persons_as_uris:
                     try:
                         person = Person.objects.get(
-                            id=person_to_set["uri"]
-                        )  ### TODO: MODIFY TO LOOK FOR URIS WELL...
+                            id=person_to_set["uri"],
+                        )  ### TODO: MODIFY TO LOOK FOR URIS WELL...NO!!
 
                     except Person.DoesNotExist:
 
@@ -207,11 +207,11 @@ def ingest_statement(data, ipif_repo):
             for person_to_set in relatesToPerson_to_set:
                 try:
                     person = Person.objects.get(
-                        pk=person_to_set["uri"]
-                    )  ### TODO: MODIFY TO LOOK FOR URIS WELL...
+                        identifier=person_to_set["uri"],
+                    )  ### TODO: ADD on_delete hook to recreate if deleted by owner!
                 except Person.DoesNotExist:
                     person = Person(
-                        id=person_to_set["uri"],
+                        identifier=person_to_set["uri"],
                         label=person_to_set["label"],
                         local_id=person_to_set["uri"].split("/")[-1],
                         modifiedBy="IPIFHUB_AUTOCREATED",
@@ -246,7 +246,7 @@ def ingest_person_or_source(entity_class, data, ipif_repo):
     input_content_hash = hash_content(data)
 
     try:  # Entity exists
-        entity = entity_class.objects.get(pk=qid)
+        entity = entity_class.objects.get(identifier=qid)
 
         # If already exists, check whether it's been modified by comparing hashes;
         # if not modified, just return
@@ -316,7 +316,7 @@ def ingest_factoid(data, ipif_repo):
     qid = build_qualified_id(ipif_repo.endpoint_uri, "Factoid", data["local_id"])
     input_content_hash = hash_content(data)
     try:  # factoid does exist
-        factoid = Factoid.objects.get(pk=qid)
+        factoid = Factoid.objects.get(identifier=qid)
 
         if factoid.inputContentHash == input_content_hash:
             print(f'No change to <Factoid @id="{qid}">; skipping ingest.')
@@ -335,7 +335,7 @@ def ingest_factoid(data, ipif_repo):
 
         try:
             factoid.person = Person.objects.get(
-                pk=build_qualified_id(
+                identifier=build_qualified_id(
                     ipif_repo.endpoint_uri, "Person", data["person-ref"]["@id"]
                 )
             )
@@ -346,7 +346,7 @@ def ingest_factoid(data, ipif_repo):
 
         try:
             factoid.source = Source.objects.get(
-                pk=build_qualified_id(
+                identifier=build_qualified_id(
                     ipif_repo.endpoint_uri, "Source", data["source-ref"]["@id"]
                 )
             )
@@ -360,11 +360,11 @@ def ingest_factoid(data, ipif_repo):
         }
         for statement in data["statement-refs"]:
             try:
-                pk = build_qualified_id(
+                identifier = build_qualified_id(
                     ipif_repo.endpoint_uri, "Statement", statement["@id"]
                 )
-                if pk not in current_statements_as_uris:
-                    s = Statement.objects.get(pk=pk)
+                if identifier not in current_statements_as_uris:
+                    s = Statement.objects.get(identifier=identifier)
                     factoid.statements.add(s)
                     factoid.save()
             except Statement.DoesNotExist:
@@ -378,11 +378,11 @@ def ingest_factoid(data, ipif_repo):
             build_qualified_id(ipif_repo.endpoint_uri, "Statement", s["@id"])
             for s in data["statement-refs"]
         }
-        current_statements = {statement for statement in factoid.sstatement.all()}
+        current_statements = {statement for statement in factoid.statements.all()}
 
         for current_statement in current_statements:
 
-            if current_statement.id not in statements_to_add:
+            if current_statement.identifier not in statements_to_add:
                 factoid.statements.remove(current_statement)
 
         factoid.save()
@@ -401,7 +401,7 @@ def ingest_factoid(data, ipif_repo):
 
         try:
             factoid.person = Person.objects.get(
-                pk=build_qualified_id(
+                identifier=build_qualified_id(
                     ipif_repo.endpoint_uri, "Person", data["person-ref"]["@id"]
                 )
             )
@@ -412,7 +412,7 @@ def ingest_factoid(data, ipif_repo):
 
         try:
             factoid.source = Source.objects.get(
-                pk=build_qualified_id(
+                identifier=build_qualified_id(
                     ipif_repo.endpoint_uri, "Source", data["source-ref"]["@id"]
                 )
             )
@@ -423,11 +423,11 @@ def ingest_factoid(data, ipif_repo):
         factoid.save()
         for statement in data["statement-refs"]:
             try:
-                pk = build_qualified_id(
+                identifier = build_qualified_id(
                     ipif_repo.endpoint_uri, "Statement", statement["@id"]
                 )
 
-                s = Statement.objects.get(pk=pk)
+                s = Statement.objects.get(identifier=identifier)
 
                 factoid.statements.add(s)
             except Statement.DoesNotExist:

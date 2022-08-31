@@ -147,6 +147,9 @@ def factoid_post_save(sender, instance, **kwargs):
 @receiver(post_save, sender=Person)
 def person_post_save(sender, instance, **kwargs):
     # handle_merge_person_from_person_update(instance)
+    """TODO: on person save, we need to take its identifier and add it as a URI
+    to the person...; also add recursive lookups and other possibilities as URIs"""
+
     transaction.on_commit(lambda: update_person_index.delay(instance.pk))
 
 

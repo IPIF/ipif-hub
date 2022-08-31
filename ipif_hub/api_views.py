@@ -12,7 +12,14 @@ from rest_framework import viewsets
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from ipif_hub.models import Factoid, IpifEntityAbstractBase, Person, Source, Statement
+from ipif_hub.models import (
+    Factoid,
+    IpifEntityAbstractBase,
+    MergePerson,
+    Person,
+    Source,
+    Statement,
+)
 from ipif_hub.search_indexes import (
     FactoidIndex,
     MergePersonIndex,
@@ -206,11 +213,18 @@ def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
 
         # Otherwise, we need to create a query...
 
-        # Fields are directly on Factoids, unlike other models where we
-        # need to access *via* a Factoid
-        if object_class is Factoid:
+        # If it's a Person and no repo, change queryset to use
+        # MergePerson, and add extra join via persons
+        if not repo and object_class is Person:
+            queryset = MergePerson.objects
+            qd = query_dict("persons__factoids__")
+        # If it's a Factoid, relations are direct, not via factoid
+        elif object_class is Factoid:
+            queryset = object_class.objects
             qd = query_dict("")
+        # Otherwise, it's via related Factoids...
         else:
+            queryset = object_class.objects
             qd = query_dict("factoids__")
 
         q = Q()
@@ -246,7 +260,7 @@ def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
             )
 
         # Now create queryset with previously defined q object and add statement filters
-        queryset = object_class.objects.filter(q)
+        queryset = queryset.filter(q)
 
         statement_filters = build_statement_filters(request)
 

@@ -515,7 +515,8 @@ class MergePersonIndex(indexes.SearchIndex, indexes.Indexable):
             .order_by("places__label")
             .first()
         ):
-            return statement.places.order_by("label").first().label
+            if statement.places.all():
+                return statement.places.order_by("label").first().label
 
         return SORT_LAST
 

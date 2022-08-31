@@ -70,7 +70,7 @@ def person1_data_error():
 def test_ingest_person_with_valid_data(repo: IpifRepo, person1_data: dict):
     ingest_person_or_source(Person, person1_data, repo)
 
-    p: Person = Person.objects.get(pk="http://test.com/persons/Person1")
+    p: Person = Person.objects.get(identifier="http://test.com/persons/Person1")
     assert p
     assert p.uris
     assert p.uris.first().uri == "http://other.com/person1"
@@ -123,7 +123,7 @@ def test_ingest_person_with_updated_data(
         repo,
     )
 
-    p: Person = Person.objects.get(pk="http://test.com/persons/Person1")
+    p: Person = Person.objects.get(identifier="http://test.com/persons/Person1")
 
     assert p
     assert p.uris.first().uri == "http://changed.com/person1"
@@ -191,7 +191,7 @@ def source1_data_error():
 def test_ingest_source_with_valid_data(repo: IpifRepo, source1_data: dict):
     ingest_person_or_source(Source, source1_data, repo)
 
-    p: Source = Source.objects.get(pk="http://test.com/sources/Source1")
+    p: Source = Source.objects.get(identifier="http://test.com/sources/Source1")
     assert p
     assert p.uris.first().uri == "http://other.com/source1"
     assert p.local_id == "Source1"
@@ -243,7 +243,7 @@ def test_ingest_source_with_updated_data(
         repo,
     )
 
-    p: Source = Source.objects.get(pk="http://test.com/sources/Source1")
+    p: Source = Source.objects.get(identifier="http://test.com/sources/Source1")
 
     assert p
     assert p.uris.first().uri == "http://changed.com/source1"
@@ -314,7 +314,7 @@ def test_statement_ingestion_with_valid_data(repo: IpifRepo, statement1_data: di
     ingest_statement(statement1_data, repo)
 
     st: Statement = Statement.objects.get(
-        pk="http://test.com/statements/St1-John-Smith-Name"
+        identifier="http://test.com/statements/St1-John-Smith-Name"
     )
     assert st.local_id == "St1-John-Smith-Name"
     assert st.label == "John Smith is called John Smith"
@@ -382,7 +382,7 @@ def test_statement_ingestion_with_updated_data(
     ingest_statement(statement1_data_update, repo)
 
     st: Statement = Statement.objects.get(
-        pk="http://test.com/statements/St1-John-Smith-Name"
+        identifier="http://test.com/statements/St1-John-Smith-Name"
     )
     assert st.local_id == "St1-John-Smith-Name"
     assert st.label == "John Smith is called John Smuth"
@@ -429,17 +429,19 @@ def test_ingest_factoid_with_valid_data_and_refs_already_created(
     ingest_statement(statement1_data, repo)
     ingest_factoid(factoid1_data, repo)
 
-    f: Factoid = Factoid.objects.get(pk="http://test.com/factoids/Factoid1")
+    f: Factoid = Factoid.objects.get(identifier="http://test.com/factoids/Factoid1")
     assert f.local_id == "Factoid1"
     assert f.createdBy == "Researcher1"
     assert f.createdWhen == datetime.date(2012, 4, 23)
     assert f.modifiedBy == "Researcher1"
     assert f.modifiedWhen == datetime.date(2012, 4, 23)
 
-    assert f.person == Person.objects.get(pk="http://test.com/persons/Person1")
-    assert f.source == Source.objects.get(pk="http://test.com/sources/Source1")
+    assert f.person == Person.objects.get(identifier="http://test.com/persons/Person1")
+    assert f.source == Source.objects.get(identifier="http://test.com/sources/Source1")
     assert (
-        Statement.objects.get(pk="http://test.com/statements/St1-John-Smith-Name")
+        Statement.objects.get(
+            identifier="http://test.com/statements/St1-John-Smith-Name"
+        )
         in f.statements.all()
     )
 
@@ -544,22 +546,6 @@ def factoid1_data_error():
     return data
 
 
-@pytest.mark.django_db
-def test_ingest_factoid_fails_with_missing_statement_ref(
-    repo: IpifRepo,
-    factoid1_data_error: dict,
-    person1_data: dict,
-    source1_data: dict,
-    statement1_data: dict,
-):
-    ingest_person_or_source(Person, person1_data, repo)
-    ingest_person_or_source(Source, source1_data, repo)
-    ingest_statement(statement1_data, repo)
-
-    with pytest.raises(DataFormatError) as e:
-        ingest_factoid(factoid1_data_error, repo)
-
-
 @pytest.fixture
 def statement2_data():
     data = {
@@ -600,25 +586,29 @@ def test_ingest_factoid_with_updated_data(
 
     ingest_factoid(factoid1_data_update, repo)
 
-    f: Factoid = Factoid.objects.get(pk="http://test.com/factoids/Factoid1")
+    f: Factoid = Factoid.objects.get(identifier="http://test.com/factoids/Factoid1")
     assert f.local_id == "Factoid1"
     assert f.createdBy == "Researcher1"
     assert f.createdWhen == datetime.date(2012, 4, 23)
     assert f.modifiedBy == "Researcher2"
     assert f.modifiedWhen == datetime.date(2012, 4, 24)
 
-    assert f.person == Person.objects.get(pk="http://test.com/persons/Person1")
-    assert f.source == Source.objects.get(pk="http://test.com/sources/Source1")
+    assert f.person == Person.objects.get(identifier="http://test.com/persons/Person1")
+    assert f.source == Source.objects.get(identifier="http://test.com/sources/Source1")
     assert (
-        Statement.objects.get(pk="http://test.com/statements/St1-John-Smith-Name")
+        Statement.objects.get(
+            identifier="http://test.com/statements/St1-John-Smith-Name"
+        )
         in f.statements.all()
     )
     assert (
-        Statement.objects.get(pk="http://test.com/statements/St2-jsmith-teacher")
+        Statement.objects.get(
+            identifier="http://test.com/statements/St2-jsmith-teacher"
+        )
         in f.statements.all()
     )
 
-    p: Person = Person.objects.get(pk="http://persons.com/mrsSpenceley")
+    p: Person = Person.objects.get(identifier="http://persons.com/mrsSpenceley")
     assert p.ipif_repo == AUTOCREATED
 
 

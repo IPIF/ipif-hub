@@ -74,6 +74,13 @@ def test_create_merge_person_and_connect_two_persons(
     assert MergePerson.objects.filter(persons__uris=mp.uris.first()).first() == mp
 
 
+@pytest.mark.django_db(transaction=True)
+def test_merge_person_created_by_person_created(repo, personNotSameAs, factoid):
+    assert personNotSameAs in Person.objects.all()
+
+    assert MergePerson.objects.all()
+
+
 """
 OK:
 
