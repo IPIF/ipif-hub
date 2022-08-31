@@ -2,11 +2,12 @@ import datetime
 
 import pytest
 
-from ipif_hub.models import MergePerson
+from ipif_hub.models import MergePerson, MergeSource
 from ipif_hub.serializers import (
     FactoidRefSerializer,
     FactoidSerializer,
     MergePersonSerializer,
+    MergeSourceSerializer,
     PersonRefSerializer,
     PersonSerializer,
     PlaceSerializer,
@@ -159,6 +160,8 @@ def test_merge_person_serializer(
     person_sameAs,
 ):
 
+    # TODO: It's really dumb that we're not really decoupling the automatic
+    # creation of the object from testing the serializer
     assert len(MergePerson.objects.all()) == 1
 
     merge_person = MergePerson.objects.first()
@@ -175,6 +178,103 @@ def test_merge_person_serializer(
         "modifiedBy": "ipif-hub",
         "modifiedWhen": str(datetime.date.today()),
         "uris": ["http://alternative.com/person1"],
+        "factoid-refs": [
+            {
+                "@id": "http://test.com/factoids/factoid1",
+                "label": "Factoid One",
+                "person-ref": {
+                    "@id": "http://test.com/persons/person1",
+                    "label": "Person One",
+                },
+                "source-ref": {
+                    "@id": "http://test.com/sources/source1",
+                    "label": "Source One",
+                },
+                "statement-refs": [
+                    {
+                        "@id": "http://test.com/statements/statement1",
+                        "label": "Statement One",
+                    }
+                ],
+            },
+            {
+                "@id": "http://test.com/factoids/factoid2",
+                "label": "Factoid Two",
+                "person-ref": {
+                    "@id": "http://test.com/persons/person1",
+                    "label": "Person One",
+                },
+                "source-ref": {
+                    "@id": "http://test.com/sources/source1",
+                    "label": "Source One",
+                },
+                "statement-refs": [
+                    {
+                        "@id": "http://test.com/statements/statement2",
+                        "label": "Statement Two",
+                    }
+                ],
+            },
+            {
+                "@id": "http://test.com/factoids/factoid3",
+                "label": "Factoid Three",
+                "person-ref": {
+                    "@id": "http://test2.com/persons/person_sameAs",
+                    "label": "Person SameAs",
+                },
+                "source-ref": {
+                    "@id": "http://test.com/sources/source1",
+                    "label": "Source One",
+                },
+                "statement-refs": [
+                    {
+                        "@id": "http://test.com/statements/statement2",
+                        "label": "Statement Two",
+                    }
+                ],
+            },
+        ],
+    }
+
+
+@pytest.mark.django_db(transaction=True)
+def test_merge_source_serializer(
+    factoid,
+    factoid2,
+    factoid3,
+    source,
+    sourceSameAs,
+    statement,
+    repo,
+    person,
+):
+
+    merge_source: MergeSource = MergeSource(
+        createdBy="ipif-hub",
+        createdWhen=datetime.date.today(),
+        modifiedBy="ipif-hub",
+        modifiedWhen=datetime.date.today(),
+    )
+    merge_source.save()
+    merge_source.sources.add(source, sourceSameAs)
+
+    serialized_data = MergeSourceSerializer(merge_source).data
+
+    # ID regenerates each time: could mock this to be stable,
+    # but it's really fine so just don't bother
+    serialized_data.pop("@id")
+
+    # No guaranteed order for returning these!
+    uris = set(serialized_data.pop("uris"))
+    assert uris == set(
+        ["http://sources.com/source1", "http://sources.com/sourceSameAs"]
+    )
+
+    assert serialized_data == {
+        "createdBy": "ipif-hub",
+        "createdWhen": "2022-08-31",
+        "modifiedBy": "ipif-hub",
+        "modifiedWhen": "2022-08-31",
         "factoid-refs": [
             {
                 "@id": "http://test.com/factoids/factoid1",
