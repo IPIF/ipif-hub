@@ -191,11 +191,41 @@ def personNotSameAs(repo, uriNotSameAs):
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
-def source(repo):
-    s = Source(
+def sourceSameAsURI():
+    uri = URI(uri="http://sources.com/sourceSameAs")
+    uri.save()
+    return uri
+
+
+@pytest.fixture()
+@pytest.mark.django_db(transaction=True)
+def source(repo, sourceSameAsURI):
+    s: Source = Source(
         local_id="source1", label="Source One", ipif_repo=repo, **created_modified
     )
     s.save()
+
+    uri = URI(uri="http://sources.com/source1")
+    uri.save()
+    s.uris.add(uri)
+
+    s.uris.add(sourceSameAsURI)
+    return s
+
+
+@pytest.fixture()
+@pytest.mark.django_db(transaction=True)
+def sourceSameAs(repo, sourceSameAsURI):
+    s = Source(
+        local_id="sourceSameAs",
+        label="Source SameAs",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    s.save()
+
+    s.uris.add(sourceSameAsURI)
+
     return s
 
 

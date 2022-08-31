@@ -11,6 +11,7 @@ from ipif_hub.models import Factoid, MergePerson, MergeSource, Person, Source, S
 from ipif_hub.tasks import (
     update_factoid_index,
     update_merge_person_index,
+    update_merge_source_index,
     update_person_index,
     update_source_index,
     update_statement_index,
@@ -119,6 +120,73 @@ def handle_delete_person_updating_merge_persons(person_to_delete: Person) -> Non
     old_merge_person.delete()
 
 
+def handle_merge_source_from_source_update(new_source):
+    """Receives a Source object"""
+
+    matching_merge_sources = MergeSource.objects.filter(
+        sources__uris__in=new_source.uris.all()
+    )
+    if not matching_merge_sources:
+        # Create new
+        merge_source = MergeSource(
+            createdBy="ipif-hub",
+            createdWhen=datetime.date.today(),
+            modifiedBy="ipif-hub",
+            modifiedWhen=datetime.date.today(),
+        )
+        merge_source.save()
+        merge_source.sources.add(new_source)
+
+    elif len(matching_merge_sources) == 1:
+        merge_source = matching_merge_sources.first()
+        merge_source.sources.add(new_source)
+
+    elif len(matching_merge_sources) > 1:
+        all_sources = []
+        for merge_source in matching_merge_sources:
+            all_sources = [*all_sources, *merge_source.sources.all()]
+            merge_source.delete()
+        new_merged_source = MergeSource(
+            createdBy="ipif-hub",
+            createdWhen=datetime.date.today(),
+            modifiedBy="ipif-hub",
+            modifiedWhen=datetime.date.today(),
+        )
+        new_merged_source.save()
+        new_merged_source.sources.add(*all_sources, new_source)
+
+
+def handle_delete_source_updating_merge_sources(source_to_delete: Source) -> None:
+    """On pre-delete of a source, remove the source's MergeSource
+    (delete it later). Find all remaining sources attached to that
+    MergeSource, and regroup them by common URIs. Then create
+    a new MergeSource for each group, attaching relevant sources.
+    """
+    old_merge_source = MergeSource.objects.get(sources=source_to_delete)
+    remaining_sources = old_merge_source.sources.exclude(pk=source_to_delete.pk)
+    uris_to_group = [
+        [uri.uri for uri in source.uris.all()] for source in remaining_sources
+    ]
+
+    merged_uri_groups: List[list] = merge_uri_sets(uris_to_group)
+
+    for uri_group in merged_uri_groups:
+        sources = (
+            Source.objects.filter(uris__uri__in=uri_group)
+            .exclude(pk=source_to_delete.pk)
+            .distinct()
+        )
+        new_merged_source = MergeSource(
+            createdBy="ipif-hub",
+            createdWhen=datetime.date.today(),
+            modifiedBy="ipif-hub",
+            modifiedWhen=datetime.date.today(),
+        )
+        new_merged_source.save()
+        new_merged_source.sources.add(*sources)
+    old_merge_source.delete()
+
+
 @receiver(m2m_changed, sender=MergePerson.persons.through)
 def merge_person_m2m_changed(sender, instance, **kwargs):
 
@@ -136,11 +204,12 @@ def index(sender, instance, **kwargs):
 @receiver(m2m_changed, sender=MergeSource.sources.through)
 def merge_source_m2m_changed(sender, instance, **kwargs):
     # print("MP_m2mchanged SOURCE CALLED")
-    pass
+    transaction.on_commit(lambda: update_merge_source_index(instance.pk))
 
 
 @receiver(post_save, sender=Factoid)
 def factoid_post_save(sender, instance, **kwargs):
+
     transaction.on_commit(lambda: update_factoid_index.delay(instance.pk))
 
 
@@ -172,6 +241,22 @@ def person_pre_delete(sender, instance, **kwargs):
 @receiver(post_save, sender=Source)
 def source_post_save(sender, instance, **kwargs):
     transaction.on_commit(lambda: update_source_index.delay(instance.pk))
+
+
+@receiver(m2m_changed, sender=Source.uris.through)
+def source_m2m_changed(sender, instance, **kwargs):
+    """TODO: If a URI is removed from a source, we need to see whether this has broken
+    any merge-sources. So, we run the merge_uri_sets to check whether there is more
+    than one set: if so, delete the original merge_source and create new ones; otherwise, it's fine."""
+
+    handle_merge_source_from_source_update(instance)
+    transaction.on_commit(lambda: update_source_index.delay(instance.pk))
+
+
+@receiver(pre_delete, sender=Source)
+def source_pre_delete(sender, instance, **kwargs):
+
+    handle_delete_source_updating_merge_sources(instance)
 
 
 @receiver(post_save, sender=Statement)

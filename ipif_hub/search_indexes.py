@@ -4,10 +4,11 @@ import os
 
 from haystack import indexes
 
-from ipif_hub.models import Factoid, MergePerson, Person, Source, Statement
+from ipif_hub.models import Factoid, MergePerson, MergeSource, Person, Source, Statement
 from ipif_hub.serializers import (
     FactoidSerializer,
     MergePersonSerializer,
+    MergeSourceSerializer,
     PersonSerializer,
     SourceSerializer,
     StatementSerializer,
@@ -77,7 +78,6 @@ class BaseIndex(indexes.SearchIndex):
     sort_to = indexes.DateTimeField()
     sort_place = indexes.CharField()
 
-    ## REMOVE default TEXT
     text = indexes.CharField(document=True, use_template=True)
 
     def prepare_ipif_repo_id(self, inst):
@@ -137,14 +137,14 @@ class BaseIndex(indexes.SearchIndex):
             if statement := inst.statements.exclude(statementText="").first():
                 try:
                     return statement.statementText[:20]
-                except:
+                except Exception:
                     return SORT_LAST
             return SORT_LAST
         if factoid := inst.factoids.exclude(statements__statementText="").first():
             if statement := factoid.statements.exclude(statementText="").first():
                 try:
                     return statement.statementText[:20]
-                except:
+                except Exception:
                     return SORT_LAST
         return SORT_LAST
 
@@ -252,8 +252,8 @@ class BaseIndex(indexes.SearchIndex):
     prepare_sort_to = prepare_sort_from
 
     def index_queryset(self, using=None):
-        ### THIS ALSO NEEDS TO BE CHANGED TO ALSO UPDATE WHEN RELATED MODELS ARE
-        ## CHANGED AS IT WILL AFFECT THE SERIALIZATION (actually, this will be done
+        # THIS ALSO NEEDS TO BE CHANGED TO ALSO UPDATE WHEN RELATED MODELS ARE
+        # CHANGED AS IT WILL AFFECT THE SERIALIZATION (actually, this will be done
         # automatically by saving the model, so nothing can change without being reindexed...
         # in which case, whole thing is slightly redundant???)
         """Used when the entire index for model is updated."""
@@ -463,7 +463,7 @@ class MergePersonIndex(indexes.SearchIndex, indexes.Indexable):
         ):
             try:
                 return statement.statementText[:20]
-            except:
+            except Exception:
                 return statement.statementText
         return SORT_LAST
 
@@ -524,6 +524,187 @@ class MergePersonIndex(indexes.SearchIndex, indexes.Indexable):
         if (
             statement := Statement.objects.exclude(date_sortdate=None)
             .filter(factoids__person__merge_person__pk=inst.pk)
+            .order_by("date_sortdate")
+            .first()
+        ):
+            return statement.date_sortdate
+        return SORT_DATE_LAST
+
+    prepare_sort_to = prepare_sort_from
+
+
+class MergeSourceIndex(indexes.SearchIndex, indexes.Indexable):
+    def get_model(self):
+        return MergeSource
+
+    text = indexes.CharField(document=True, use_template=True)
+
+    identifier = indexes.CharField(model_attr="id")
+    local_id = indexes.CharField(model_attr="id")
+    uris = indexes.MultiValueField()
+    ipif_type = indexes.CharField()
+    # label = indexes.CharField(model_attr="label")
+    pre_serialized = indexes.CharField()
+
+    st = indexes.CharField(
+        use_template=True, template_name=get_template("statements_via_merge_source.txt")
+    )
+
+    f = indexes.CharField(
+        use_template=True, template_name=get_template("factoids_via_merge_source.txt")
+    )
+
+    s = indexes.CharField(
+        use_template=True, template_name=get_template("sources_via_merge_source.txt")
+    )
+
+    p = indexes.CharField(
+        use_template=True, template_name=get_template("persons_via_merge_source.txt")
+    )
+
+    sort_createdBy = indexes.CharField(model_attr="createdBy")
+    sort_createdWhen = indexes.DateField(model_attr="createdWhen")
+    sort_modifiedBy = indexes.CharField(model_attr="modifiedBy")
+    sort_modifiedWhen = indexes.DateField(model_attr="modifiedWhen")
+    sort_personId = indexes.CharField()
+
+    sort_statementId = indexes.CharField()
+
+    sort_sourceId = indexes.CharField()
+
+    sort_factoidId = indexes.CharField()
+
+    sort_statementText = indexes.CharField()
+
+    sort_relatesToPerson = indexes.CharField()
+
+    sort_memberOf = indexes.CharField()
+
+    sort_role = indexes.CharField()
+
+    sort_name = indexes.CharField()
+
+    sort_place = indexes.CharField()
+
+    sort_from = indexes.DateTimeField()
+    sort_to = indexes.DateTimeField()
+
+    def prepare_uris(self, inst):
+        return list(inst.uri_set)
+
+    def prepare_ipif_type(self, inst):
+        return self.get_model().__name__.lower()
+
+    def prepare_pre_serialized(self, inst):
+        serializer = MergeSourceSerializer
+        return json.dumps(serializer(inst).data)
+
+    def prepare_sort_personId(self, inst):
+        if (
+            person := Person.objects.filter(factoids__source__merge_source__pk=inst.pk)
+            .order_by("local_id")
+            .first()
+        ):
+            return person.local_id
+        return SORT_LAST
+
+    def prepare_sort_statementId(self, inst):
+        if (
+            statement := Statement.objects.filter(
+                factoids__source__merge_source__pk=inst.pk
+            )
+            .order_by("local_id")
+            .first()
+        ):
+            return statement.local_id
+        return SORT_LAST
+
+    def prepare_sort_sourceId(self, inst):
+        if source := inst.sources.order_by("local_id").first():
+            return source.local_id
+        return SORT_DATE_LAST
+
+    def prepare_sort_factoidId(self, inst):
+        if (
+            factoid := Factoid.objects.filter(source__merge_source__pk=inst.pk)
+            .order_by("local_id")
+            .first()
+        ):
+            return factoid.local_id
+        return SORT_LAST
+
+    def prepare_sort_statementText(self, inst):
+        if (
+            statement := Statement.objects.filter(
+                factoids__source__merge_source__pk=inst.pk
+            )
+            .exclude(statementText="")
+            .order_by("statementText")
+            .first()
+        ):
+            try:
+                return statement.statementText[:20]
+            except Exception:
+                return statement.statementText
+        return SORT_LAST
+
+    def prepare_sort_relatesToPerson(self, inst):
+        if (
+            statement := Statement.objects.exclude(relatesToPerson=None)
+            .filter(factoids__source__merge_source__pk=inst.pk)
+            .order_by("relatesToPerson__local_id")
+            .first()
+        ):
+            return statement.relatesToPerson.order_by("local_id").first().local_id
+        return SORT_LAST
+
+    def prepare_sort_memberOf(self, inst):
+
+        if (
+            statement := Statement.objects.exclude(memberOf_label="")
+            .filter(factoids__source__merge_source__pk=inst.pk)
+            .order_by("memberOf_label")
+            .first()
+        ):
+            return statement.memberOf_label
+        return SORT_LAST
+
+    def prepare_sort_role(self, inst):
+        if (
+            statement := Statement.objects.exclude(role_label="")
+            .filter(factoids__source__merge_source__pk=inst.pk)
+            .order_by("role_label")
+            .first()
+        ):
+            return statement.role_label
+        return SORT_LAST
+
+    def prepare_sort_name(self, inst):
+        if (
+            statement := Statement.objects.exclude(name="")
+            .filter(factoids__source__merge_source__pk=inst.pk)
+            .order_by("name")
+            .first()
+        ):
+            return statement.name
+        return SORT_LAST
+
+    def prepare_sort_place(self, inst):
+        if (
+            statement := Statement.objects.exclude(places=None, places__label="")
+            .filter(factoids__source__merge_source__pk=inst.pk)
+            .order_by("places__label")
+            .first()
+        ):
+            if statement.places.all():
+                return statement.places.order_by("label").first().label
+
+        return SORT_LAST
+
+    def prepare_sort_from(self, inst):
+        if (
+            statement := Statement.objects.exclude(date_sortdate=None)
+            .filter(factoids__source__merge_source__pk=inst.pk)
             .order_by("date_sortdate")
             .first()
         ):

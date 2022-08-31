@@ -10,6 +10,7 @@ from ipif_hub.models import (
     Factoid,
     IngestionJob,
     MergePerson,
+    MergeSource,
     Person,
     Source,
     Statement,
@@ -17,6 +18,7 @@ from ipif_hub.models import (
 from ipif_hub.search_indexes import (
     FactoidIndex,
     MergePersonIndex,
+    MergeSourceIndex,
     PersonIndex,
     SourceIndex,
     StatementIndex,
@@ -31,6 +33,15 @@ def update_merge_person_index(instance_pk):
     for merge_person_search in merge_person_searches:
         merge_person_search.searchindex.update_object(
             MergePerson.objects.get(pk=instance_pk)
+        )
+
+
+@shared_task
+def update_merge_source_index(instance_pk):
+    merge_source_searches = MergeSourceIndex.objects.filter(django_id=instance_pk)
+    for merge_source_search in merge_source_searches:
+        merge_source_search.searchindex.update_object(
+            MergeSource.objects.get(pk=instance_pk)
         )
 
 
@@ -55,6 +66,9 @@ def update_factoid_index(instance_pk):
     source_searches = SourceIndex.objects.filter(django_id=source.pk)
     for source_search in source_searches:
         source_search.searchindex.update_object(source)
+
+    if merge_source := source.merge_source.first():
+        update_merge_source_index(merge_source.pk)
 
     statements = Factoid.objects.get(pk=instance_pk).statements.all()
     for statement in statements:
