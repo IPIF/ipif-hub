@@ -1,3 +1,5 @@
+import datetime
+
 import pytest
 
 from ipif_hub.models import MergePerson
@@ -169,9 +171,9 @@ def test_merge_person_serializer(
 
     assert serialized_data == {
         "createdBy": "ipif-hub",
-        "createdWhen": "2022-08-18",
+        "createdWhen": str(datetime.date.today()),
         "modifiedBy": "ipif-hub",
-        "modifiedWhen": "2022-08-18",
+        "modifiedWhen": str(datetime.date.today()),
         "uris": ["http://alternative.com/person1"],
         "factoid-refs": [
             {

@@ -3,6 +3,7 @@ from rest_framework.test import APIClient
 
 from ipif_hub.serializers import (
     FactoidSerializer,
+    MergePersonSerializer,
     PersonSerializer,
     SourceSerializer,
     StatementSerializer,
@@ -13,7 +14,7 @@ from ipif_hub.serializers import (
 def test_request_for_persons(person, factoid):
     client = APIClient()
     response = client.get("/ipif/persons/")
-    assert response.data == [PersonSerializer(person).data]
+    assert response.data == [MergePersonSerializer(person.merge_person.first()).data]
 
     response = client.get("/testrepo/ipif/persons/")
     assert response.data == [PersonSerializer(person).data]
@@ -23,7 +24,7 @@ def test_request_for_persons(person, factoid):
 def test_request_for_specific_persons(person, factoid):
     client = APIClient()
     response = client.get("/ipif/persons/http://test.com/persons/person1")
-    assert response.data == PersonSerializer(person).data
+    assert response.data == MergePersonSerializer(person.merge_person.first()).data
 
     response = client.get("/testrepo/ipif/persons/person1")
     assert response.data == PersonSerializer(person).data
