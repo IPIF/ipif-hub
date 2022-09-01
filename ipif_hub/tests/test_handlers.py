@@ -27,6 +27,21 @@ def test_handle_merge_person_called_by_m2m_changed(repo):
 
 
 @pytest.mark.django_db(transaction=True)
+def test_handle_merge_person_called_by_save(repo):
+
+    p1 = Person(
+        local_id="person1",
+        label="person1",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    p1.save()
+
+    merge_persons = MergePerson.objects.all()
+    assert len(merge_persons) == 1
+
+
+@pytest.mark.django_db(transaction=True)
 def test_handle_merge_source_called_by_m2m_changed(repo):
     uri1 = URI(uri="http://one.com")
     uri1.save()
@@ -39,6 +54,23 @@ def test_handle_merge_source_called_by_m2m_changed(repo):
     )
     s1.save()
     s1.uris.add(uri1)
+
+    merge_sources = MergeSource.objects.all()
+    assert len(merge_sources) == 1
+    ms: MergeSource = merge_sources.first()
+    assert uri1 in ms.uris
+
+
+@pytest.mark.django_db(transaction=True)
+def test_handle_merge_source_called_by_save(repo):
+
+    s1 = Source(
+        local_id="source1",
+        label="source1",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    s1.save()
 
     merge_sources = MergeSource.objects.all()
     assert len(merge_sources) == 1

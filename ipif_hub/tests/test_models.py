@@ -1,7 +1,7 @@
 import pytest
 from django.db import IntegrityError
 
-from ipif_hub.models import IpifRepo, MergePerson, Person
+from ipif_hub.models import IpifRepo, MergePerson, MergeSource, Person, Source
 from ipif_hub.tests.conftest import created_modified, test_repo_no_slug
 
 # from ipif_hub.search_indexes import PersonIndex
@@ -79,6 +79,13 @@ def test_merge_person_created_by_person_created(repo, personNotSameAs, factoid):
     assert personNotSameAs in Person.objects.all()
 
     assert MergePerson.objects.all()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_merge_source_created_by_source_created(repo, sourceNotSameAs, factoid):
+    assert sourceNotSameAs in Source.objects.all()
+
+    assert MergeSource.objects.all()
 
 
 """

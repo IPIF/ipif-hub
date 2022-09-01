@@ -18,10 +18,11 @@ from ipif_hub.api_views import (
     build_viewset,
     query_dict,
 )
-from ipif_hub.models import Factoid, MergePerson, Person, Source, Statement
+from ipif_hub.models import Factoid, MergePerson, MergeSource, Person, Source, Statement
 from ipif_hub.serializers import (
     FactoidSerializer,
     MergePersonSerializer,
+    MergeSourceSerializer,
     PersonSerializer,
     SourceSerializer,
     StatementSerializer,
@@ -172,6 +173,21 @@ def test_person_retrieve_view_returns_merge_person(source, statement, factoid, p
 
 
 @pytest.mark.django_db(transaction=True)
+def test_source_retrieve_view_returns_merge_source(source, statement, factoid, person):
+    serialized_data = MergeSourceSerializer(source.merge_source.first()).data
+
+    vs = SourceViewSet()
+
+    req = build_request_with_params()
+
+    response = vs.retrieve(request=req, pk=source.identifier)
+
+    assert isinstance(response, (Response,))
+
+    assert response.data == serialized_data
+
+
+@pytest.mark.django_db(transaction=True)
 def test_retrieve_view_with_local_id_and_repo(person, factoid):
     # The response data should be the same as this
     serialized_data = PersonSerializer(person).data
@@ -218,6 +234,9 @@ def test_retrieve_view_with_alternative_uri_and_repo(person, factoid):
     assert response.data == serialized_data
 
 
+# TODO: DUPLICATE THIS TEST FOR SOURCE!
+
+
 @pytest.mark.django_db(transaction=True)
 def test_retrieve_view_with_alternative_uri_returns_merge_person(
     person: Person, factoid: Factoid
@@ -230,6 +249,24 @@ def test_retrieve_view_with_alternative_uri_returns_merge_person(
     req = build_request_with_params()
 
     response = vs.retrieve(request=req, pk="http://alternative.com/person1")
+    assert isinstance(response, (Response,))
+
+    # The response we get back is the same as was serialized
+    assert response.data == serialized_data
+
+
+@pytest.mark.django_db(transaction=True)
+def test_retrieve_view_with_alternative_uri_returns_merge_source(
+    source: Source, factoid: Factoid
+):
+    # The response data should be the same as this
+    serialized_data = MergeSourceSerializer(source.merge_source.first()).data
+
+    vs = SourceViewSet()
+
+    req = build_request_with_params()
+
+    response = vs.retrieve(request=req, pk="http://sources.com/source1")
     assert isinstance(response, (Response,))
 
     # The response we get back is the same as was serialized
@@ -326,6 +363,20 @@ def test_list_view_person_basic_returns_merge_person(
 
 
 @pytest.mark.django_db(transaction=True)
+def test_list_view_source_basic_returns_merge_source(
+    person, factoid, statement, source
+):
+    serialized_data = MergeSourceSerializer(MergeSource.objects.all(), many=True).data
+
+    vs: SourceViewSet = SourceViewSet()
+    req = build_request_with_params()
+
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == serialized_data
+
+
+@pytest.mark.django_db(transaction=True)
 def test_list_view_basic_returns_item_with_full_text(person, factoid):
 
     vs = PersonViewSet()
@@ -374,6 +425,20 @@ def test_list_view_basic_returns_merge_person_with_full_text(person, factoid):
 
     assert response.status_code == 200
     assert response.data == [MergePersonSerializer(person.merge_person.first()).data]
+
+
+@pytest.mark.django_db(transaction=True)
+def test_list_view_basic_returns_merge_source_with_full_text(person, factoid, source):
+
+    vs = SourceViewSet()
+
+    req = build_request_with_params(p="researcher1")
+
+    with assertNumQueries(0):
+        response = vs.list(request=req)
+
+    assert response.status_code == 200
+    assert response.data == [MergeSourceSerializer(source.merge_source.first()).data]
 
 
 @pytest.mark.django_db(transaction=True)
@@ -451,6 +516,53 @@ def test_list_view_merge_person_sort_by(
 
 
 @pytest.mark.django_db(transaction=True)
+def test_list_view_merge_source_sort_by(
+    sourceNotSameAs: Source,
+    source: Source,
+    person: Person,
+    personNotSameAs: Person,
+    factoid,
+    factoid2,
+    statement,
+    statement2,
+    factoid4,
+):
+    vs = SourceViewSet()
+    req = build_request_with_params()
+
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    print(response.data)
+    print("---")
+    print(
+        MergeSourceSerializer(source.merge_source.first()).data,
+    )
+
+    assert response.data == [
+        MergeSourceSerializer(sourceNotSameAs.merge_source.first()).data,
+        MergeSourceSerializer(source.merge_source.first()).data,
+    ]
+    """
+    req = build_request_with_params(sortBy="personId ASC")
+
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == [
+        MergePersonSerializer(person.merge_person.first()).data,
+        MergePersonSerializer(personNotSameAs.merge_person.first()).data,
+    ]
+
+    req = build_request_with_params(sortBy="personId DESC")
+
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert response.data == [
+        MergePersonSerializer(personNotSameAs.merge_person.first()).data,
+        MergePersonSerializer(person.merge_person.first()).data,
+    ]
+
+
+@pytest.mark.django_db(transaction=True)
 def test_list_view_pagination(person, person2, factoid):
     vs = PersonViewSet()
 
@@ -475,6 +587,7 @@ def test_list_view_pagination(person, person2, factoid):
         PersonSerializer(person).data,
         PersonSerializer(person2).data,
     ]
+    """
 
 
 @pytest.mark.django_db(transaction=True)

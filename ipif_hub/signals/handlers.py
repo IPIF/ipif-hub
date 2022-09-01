@@ -7,7 +7,15 @@ from django.db import transaction
 from django.db.models.signals import m2m_changed, post_save, pre_delete
 from django.dispatch import receiver
 
-from ipif_hub.models import Factoid, MergePerson, MergeSource, Person, Source, Statement
+from ipif_hub.models import (
+    URI,
+    Factoid,
+    MergePerson,
+    MergeSource,
+    Person,
+    Source,
+    Statement,
+)
 from ipif_hub.tasks import (
     update_factoid_index,
     update_merge_person_index,
@@ -214,11 +222,12 @@ def factoid_post_save(sender, instance, **kwargs):
 
 
 @receiver(post_save, sender=Person)
-def person_post_save(sender, instance, **kwargs):
+def person_post_save(sender, instance: Person, **kwargs):
     # handle_merge_person_from_person_update(instance)
     """TODO: on person save, we need to take its identifier and add it as a URI
     to the person...; also add recursive lookups and other possibilities as URIs"""
 
+    handle_merge_person_from_person_update(instance)
     transaction.on_commit(lambda: update_person_index.delay(instance.pk))
 
 
@@ -239,7 +248,17 @@ def person_pre_delete(sender, instance, **kwargs):
 
 
 @receiver(post_save, sender=Source)
-def source_post_save(sender, instance, **kwargs):
+def source_post_save(sender, instance: Source, **kwargs):
+    """
+    try:
+        uri = URI.objects.get(uri=instance.identifier)
+        instance.uris.add(uri)
+    except URI.DoesNotExist:
+        uri = URI(uri=instance.identifier)
+        uri.save()
+        instance.uris.add(uri)
+    """
+    handle_merge_source_from_source_update(instance)
     transaction.on_commit(lambda: update_source_index.delay(instance.pk))
 
 

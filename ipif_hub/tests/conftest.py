@@ -231,6 +231,22 @@ def sourceSameAs(repo, sourceSameAsURI):
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
+def sourceNotSameAs(repo):
+    s = Source(
+        local_id="sourceNotSameAs",
+        label="Source NotSameAs",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    s.save()
+    uri = URI(uri="http://notsamesource.com/")
+    uri.save()
+    s.uris.add(uri)
+    return s
+
+
+@pytest.fixture()
+@pytest.mark.django_db(transaction=True)
 def statement(repo):
     related_person = Person(
         local_id="http://related.com/person1",

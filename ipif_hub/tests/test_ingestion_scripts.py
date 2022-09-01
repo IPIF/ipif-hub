@@ -73,7 +73,8 @@ def test_ingest_person_with_valid_data(repo: IpifRepo, person1_data: dict):
     p: Person = Person.objects.get(identifier="http://test.com/persons/Person1")
     assert p
     assert p.uris
-    assert p.uris.first().uri == "http://other.com/person1"
+    # assert p.uris.filter(uri="http://test.com/persons/Person1")
+    assert p.uris.filter(uri="http://other.com/person1")
     assert p.local_id == "Person1"
     assert p.createdBy == "Researcher1"
     assert p.createdWhen == datetime.date(2012, 4, 23)
@@ -126,7 +127,8 @@ def test_ingest_person_with_updated_data(
     p: Person = Person.objects.get(identifier="http://test.com/persons/Person1")
 
     assert p
-    assert p.uris.first().uri == "http://changed.com/person1"
+    assert p.uris.filter(uri="http://changed.com/person1")
+    # assert p.uris.filter(uri="http://test.com/persons/Person1")
     assert p.local_id == "Person1"
     assert p.createdBy == "Researcher1"
     assert p.createdWhen == datetime.date(2012, 4, 23)
@@ -193,7 +195,8 @@ def test_ingest_source_with_valid_data(repo: IpifRepo, source1_data: dict):
 
     p: Source = Source.objects.get(identifier="http://test.com/sources/Source1")
     assert p
-    assert p.uris.first().uri == "http://other.com/source1"
+    assert p.uris.filter(uri="http://other.com/source1")
+    # assert p.uris.filter(uri="http://test.com/sources/Source1")
     assert p.local_id == "Source1"
     assert p.createdBy == "Researcher1"
     assert p.createdWhen == datetime.date(2012, 4, 23)
@@ -246,7 +249,8 @@ def test_ingest_source_with_updated_data(
     p: Source = Source.objects.get(identifier="http://test.com/sources/Source1")
 
     assert p
-    assert p.uris.first().uri == "http://changed.com/source1"
+    assert p.uris.filter(uri="http://changed.com/source1")
+    # assert p.uris.filter(uri="http://test.com/sources/Source1")
     assert p.local_id == "Source1"
     assert p.createdBy == "Researcher1"
     assert p.createdWhen == datetime.date(2012, 4, 23)

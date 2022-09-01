@@ -23,6 +23,7 @@ from ipif_hub.models import (
 from ipif_hub.search_indexes import (
     FactoidIndex,
     MergePersonIndex,
+    MergeSourceIndex,
     PersonIndex,
     SourceIndex,
     StatementIndex,
@@ -182,6 +183,9 @@ def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
         if not repo and object_class.__name__ == "Person":
             index = MergePersonIndex
             ipif_type = "mergeperson"
+        elif not repo and object_class.__name__ == "Source":
+            index = MergeSourceIndex
+            ipif_type = "mergesource"
 
         solr_lookup_dict = {"ipif_type": ipif_type}
         # Build lookup dict for fulltext search parameters
@@ -355,6 +359,9 @@ def retrieve_view(object_class):
         if not repo and object_class.__name__ == "Person":
             index = MergePersonIndex
             ipif_type = "mergeperson"
+        elif not repo and object_class.__name__ == "Source":
+            index = MergeSourceIndex
+            ipif_type = "mergesource"
 
         sq = SQ(ipif_type=ipif_type) & (
             SQ(identifier=pk) | SQ(uris=pk) | (SQ(local_id=pk))
