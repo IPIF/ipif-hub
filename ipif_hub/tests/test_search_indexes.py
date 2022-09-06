@@ -85,6 +85,27 @@ def test_merge_person_created(
 
 
 @pytest.mark.django_db(transaction=True)
+def test_merge_person_create_with_no_uri(
+    statement,
+    source,
+    factoid,
+):
+    """
+    merge_persons = MergePersonIndex.objects.filter(ipif_type="mergeperson")
+    assert len(merge_persons) == 1
+
+    merge_person = merge_persons[0]
+
+    data = json.loads(merge_person.pre_serialized)
+
+    assert data
+    assert data["factoid-refs"]
+    print(data["factoid-refs"])
+    assert data["factoid-refs"][0]["@id"] == "http://test.com/factoids/factoid1"
+    """
+
+
+@pytest.mark.django_db(transaction=True)
 def test_merge_source_created(
     person,
     statement,

@@ -4,6 +4,7 @@ from typing import Any, List
 
 import numpy as np
 from django.db import transaction
+from django.db.models import Q
 from django.db.models.signals import m2m_changed, post_save, pre_delete
 from django.dispatch import receiver
 
@@ -30,7 +31,7 @@ def handle_merge_person_from_person_update(new_person):
     """Receives a Person object"""
 
     matching_merge_persons = MergePerson.objects.filter(
-        persons__uris__in=new_person.uris.all()
+        Q(persons__uris__in=new_person.uris.all())
     )
     if not matching_merge_persons:
         # Create new
@@ -227,7 +228,7 @@ def person_post_save(sender, instance: Person, **kwargs):
     """TODO: on person save, we need to take its identifier and add it as a URI
     to the person...; also add recursive lookups and other possibilities as URIs"""
 
-    handle_merge_person_from_person_update(instance)
+    # handle_merge_person_from_person_update(instance)
     transaction.on_commit(lambda: update_person_index.delay(instance.pk))
 
 
