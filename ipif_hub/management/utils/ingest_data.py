@@ -131,7 +131,7 @@ def ingest_statement(data, ipif_repo):
                     except Person.DoesNotExist:
 
                         person = Person(
-                            id=person_to_set["uri"],
+                            identifier=person_to_set["uri"],
                             label=person_to_set["label"],
                             local_id=person_to_set["uri"].split("/")[-1],
                             modifiedBy="IPIFHUB_AUTOCREATED",

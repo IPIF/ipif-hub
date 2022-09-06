@@ -1,4 +1,5 @@
 import datetime
+from venv import create
 
 import pytest
 from django.core.management import call_command
@@ -159,6 +160,19 @@ def person_sameAs(repo2, alt_uri):
     )
     p.save()
     p.uris.add(alt_uri)
+    p.save()
+    return p
+
+
+@pytest.fixture()
+@pytest.mark.django_db(transaction=True)
+def person_no_uri(repo):
+    p: Person = Person(
+        local_id="person_no_uri",
+        label="person no uri",
+        ipif_repo=repo,
+        **created_modified,
+    )
     p.save()
     return p
 
@@ -360,6 +374,23 @@ def factoid4(repo, personNotSameAs, source, statement2):
         **created_modified,
     )
     f.person = personNotSameAs
+    f.source = source
+    f.save()
+    f.statements.add(statement2)
+    f.save()
+    return f
+
+
+@pytest.fixture()
+@pytest.mark.django_db(transaction=True)
+def factoid_person_no_uri(repo, person_no_uri, source, statement2):
+    f = Factoid(
+        local_id="factoid_person_no_uri",
+        label="Factoid Four",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    f.person = person_no_uri
     f.source = source
     f.save()
     f.statements.add(statement2)

@@ -16,6 +16,7 @@ from ipif_hub.models import (
     Person,
     Source,
     Statement,
+    get_ipif_hub_repo_AUTOCREATED_instance,
 )
 from ipif_hub.tasks import (
     update_factoid_index,
@@ -26,9 +27,15 @@ from ipif_hub.tasks import (
     update_statement_index,
 )
 
+AUTOCREATED = get_ipif_hub_repo_AUTOCREATED_instance()
 
-def handle_merge_person_from_person_update(new_person):
+
+def handle_merge_person_from_person_update(new_person: Person):
     """Receives a Person object"""
+    print("handle_merge_person_from_person_update called", new_person)
+    print(new_person.ipif_repo == AUTOCREATED)
+    if new_person.ipif_repo == AUTOCREATED:
+        return
 
     matching_merge_persons = MergePerson.objects.filter(
         Q(persons__uris__in=new_person.uris.all())
@@ -227,8 +234,8 @@ def person_post_save(sender, instance: Person, **kwargs):
     # handle_merge_person_from_person_update(instance)
     """TODO: on person save, we need to take its identifier and add it as a URI
     to the person...; also add recursive lookups and other possibilities as URIs"""
-
-    # handle_merge_person_from_person_update(instance)
+    print("person_save", instance)
+    handle_merge_person_from_person_update(instance)
     transaction.on_commit(lambda: update_person_index.delay(instance.pk))
 
 
@@ -237,7 +244,7 @@ def person_m2m_changed(sender, instance, **kwargs):
     """TODO: If a URI is removed from a person, we need to see whether this has broken
     any merge-persons. So, we run the merge_uri_sets to check whether there is more
     than one set: if so, delete the original merge_person and create new ones; otherwise, it's fine."""
-
+    print("person_m2mchanged", instance)
     handle_merge_person_from_person_update(instance)
     transaction.on_commit(lambda: update_person_index.delay(instance.pk))
 

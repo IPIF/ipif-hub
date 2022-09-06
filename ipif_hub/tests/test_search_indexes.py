@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from ipif_hub.models import Factoid, Person, Source, Statement
+from ipif_hub.models import Factoid, MergePerson, Person, Source, Statement
 from ipif_hub.search_indexes import MergePersonIndex, MergeSourceIndex, PersonIndex
 from ipif_hub.tests.conftest import created_modified
 
@@ -66,9 +66,9 @@ def test_adding_factoid_triggers_update_of_person_index(repo):
 @pytest.mark.django_db(transaction=True)
 def test_merge_person_created(
     person,
-    statement,
+    statement2,
     source,
-    factoid,
+    factoid2,
     person_sameAs,
 ):
     merge_persons = MergePersonIndex.objects.filter(ipif_type="mergeperson")
@@ -81,16 +81,16 @@ def test_merge_person_created(
     assert data
     assert data["factoid-refs"]
     print(data["factoid-refs"])
-    assert data["factoid-refs"][0]["@id"] == "http://test.com/factoids/factoid1"
+    assert data["factoid-refs"][0]["@id"] == "http://test.com/factoids/factoid2"
 
 
 @pytest.mark.django_db(transaction=True)
 def test_merge_person_create_with_no_uri(
-    statement,
-    source,
-    factoid,
+    factoid_person_no_uri,
+    person_no_uri,
 ):
-    """
+    assert len(MergePerson.objects.all()) == 1
+
     merge_persons = MergePersonIndex.objects.filter(ipif_type="mergeperson")
     assert len(merge_persons) == 1
 
@@ -101,8 +101,10 @@ def test_merge_person_create_with_no_uri(
     assert data
     assert data["factoid-refs"]
     print(data["factoid-refs"])
-    assert data["factoid-refs"][0]["@id"] == "http://test.com/factoids/factoid1"
-    """
+    assert (
+        data["factoid-refs"][0]["@id"]
+        == "http://test.com/factoids/factoid_person_no_uri"
+    )
 
 
 @pytest.mark.django_db(transaction=True)

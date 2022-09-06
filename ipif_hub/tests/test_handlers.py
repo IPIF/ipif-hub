@@ -1,6 +1,16 @@
+import datetime
+
 import pytest
 
-from ipif_hub.models import URI, MergePerson, MergeSource, Person, Source
+from ipif_hub.models import (
+    URI,
+    Factoid,
+    MergePerson,
+    MergeSource,
+    Person,
+    Source,
+    get_ipif_hub_repo_AUTOCREATED_instance,
+)
 from ipif_hub.signals.handlers import (
     handle_merge_person_from_person_update,
     handle_merge_source_from_source_update,
@@ -37,6 +47,13 @@ def test_handle_merge_person_called_by_save(repo):
     )
     p1.save()
 
+    merge_persons = MergePerson.objects.all()
+    assert len(merge_persons) == 1
+
+    uri = URI(uri="http://persons.com/person1")
+    uri.save()
+
+    p1.uris.add(uri)
     merge_persons = MergePerson.objects.all()
     assert len(merge_persons) == 1
 
@@ -124,6 +141,26 @@ def test_handle_merge_source_from_source_update_add_second_source(source, source
     merge_source = MergeSource.objects.first()
     assert source in merge_source.sources.all()
     assert sourceSameAs in merge_source.sources.all()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_handle_merge_person_from_person_update_passes_on_autocreate(
+    mute_signals, repo
+):
+    ipif_hub_repo_AUTOCREATED = get_ipif_hub_repo_AUTOCREATED_instance()
+    rel_person = Person(
+        identifier="http://alternative.com/related_person1",
+        label="related person 1",
+        local_id="related_person1",
+        modifiedBy="IPIFHUB_AUTOCREATED",
+        modifiedWhen=datetime.date.today(),
+        createdBy="IPIFHUB_AUTOCREATED",
+        createdWhen=datetime.date.today(),
+        ipif_repo=ipif_hub_repo_AUTOCREATED,
+    )
+    rel_person.save()
+    handle_merge_person_from_person_update(rel_person)
+    assert len(MergePerson.objects.all()) == 0
 
 
 @pytest.mark.django_db

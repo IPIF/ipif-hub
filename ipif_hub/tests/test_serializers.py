@@ -272,9 +272,9 @@ def test_merge_source_serializer(
 
     assert serialized_data == {
         "createdBy": "ipif-hub",
-        "createdWhen": "2022-08-31",
+        "createdWhen": str(datetime.date.today()),
         "modifiedBy": "ipif-hub",
-        "modifiedWhen": "2022-08-31",
+        "modifiedWhen": str(datetime.date.today()),
         "factoid-refs": [
             {
                 "@id": "http://test.com/factoids/factoid1",
