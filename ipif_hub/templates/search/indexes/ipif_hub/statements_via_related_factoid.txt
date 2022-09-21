@@ -1,6 +1,6 @@
 {% for factoid in object.factoids.all %}
 
-{% for statement in factoid.statement.all %}
+{% for statement in factoid.statements.all %}
 
 {{ statement.pk }}
 {{ statement.statementType_label|default_if_none:"" }}

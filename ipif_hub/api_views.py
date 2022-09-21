@@ -1,35 +1,38 @@
-from dataclasses import field
-from itertools import islice
-import json
-from typing import List
-
-from django.db.models import Q
-from django.core.validators import URLValidator
-from django.forms import ValidationError
-
-from rest_framework import viewsets
-from rest_framework.response import Response
-from rest_framework.decorators import renderer_classes
-
-from haystack.query import SQ, SearchQuerySet
-from haystack.inputs import Raw
-
 import datetime
-from dateutil.parser import parse as parse_date
+import json
+from itertools import islice
+from typing import Callable, List, Type
 
-from .models import Factoid, Person, Source, Statement
-from .search_indexes import PersonIndex, FactoidIndex, SourceIndex, StatementIndex
-from .serializers import (
-    FactoidSerializer,
-    PersonSerializer,
-    SourceSerializer,
-    StatementSerializer,
+from dateutil.parser import parse as parse_date
+from django.core.validators import URLValidator
+from django.db.models import Q
+from django.forms import ValidationError
+from haystack.query import SQ, SearchQuerySet
+from rest_framework import viewsets
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from ipif_hub.models import (
+    Factoid,
+    IpifEntityAbstractBase,
+    MergePerson,
+    Person,
+    Source,
+    Statement,
+)
+from ipif_hub.search_indexes import (
+    FactoidIndex,
+    MergePersonIndex,
+    MergeSourceIndex,
+    PersonIndex,
+    SourceIndex,
+    StatementIndex,
 )
 
 url_validate = URLValidator()
 
 
-def is_uri(s):
+def is_uri(s: str):
     try:
         url_validate(s)
         return True
@@ -37,7 +40,7 @@ def is_uri(s):
         return False
 
 
-def build_statement_filters(request) -> List[Q]:
+def build_statement_filters(request: Request) -> List[Q]:
     """
     Builds a list of statement filters
 
@@ -86,7 +89,7 @@ def build_statement_filters(request) -> List[Q]:
     return statement_filters
 
 
-def query_dict(path):
+def query_dict(path: str) -> Callable:
     """Creates an ORM join-path to related entities, returning
     a function that creates a dictionary
 
@@ -125,7 +128,7 @@ NOT_URI_RESPONSE = Response(
 )
 
 
-def list_view(object_class):
+def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
     """
 
     ✅ size
@@ -175,8 +178,16 @@ def list_view(object_class):
         else:
             sort_string = f"{sort_order}sort_{sortBy}"
 
-        # Restrict by type
-        solr_lookup_dict = {"ipif_type": object_class.__name__.lower()}
+        ipif_type = object_class.__name__.lower()
+        index = globals()[f"{object_class.__name__}Index"]
+        if not repo and object_class.__name__ == "Person":
+            index = MergePersonIndex
+            ipif_type = "mergeperson"
+        elif not repo and object_class.__name__ == "Source":
+            index = MergeSourceIndex
+            ipif_type = "mergesource"
+
+        solr_lookup_dict = {"ipif_type": ipif_type}
         # Build lookup dict for fulltext search parameters
         for p in ["st", "s", "f", "p"]:
             if param := request_params.pop(p, None):
@@ -206,11 +217,18 @@ def list_view(object_class):
 
         # Otherwise, we need to create a query...
 
-        # Fields are directly on Factoids, unlike other models where we
-        # need to access *via* a Factoid
-        if object_class is Factoid:
+        # If it's a Person and no repo, change queryset to use
+        # MergePerson, and add extra join via persons
+        if not repo and object_class is Person:
+            queryset = MergePerson.objects
+            qd = query_dict("persons__factoids__")
+        # If it's a Factoid, relations are direct, not via factoid
+        elif object_class is Factoid:
+            queryset = object_class.objects
             qd = query_dict("")
+        # Otherwise, it's via related Factoids...
         else:
+            queryset = object_class.objects
             qd = query_dict("factoids__")
 
         q = Q()
@@ -222,25 +240,31 @@ def list_view(object_class):
             # If no repository is specified, the pk needs to be a URI
             if repo == None and not is_uri(param):
                 return NOT_URI_RESPONSE
-            q &= Q(**qd("id", param)) | Q(**qd("local_id", param))
+            q &= Q(**qd("identifier", param)) | Q(**qd("local_id", param))
 
         if param := request.query_params.get("statementId"):
             if repo == None and not is_uri(param):
                 return NOT_URI_RESPONSE
-            q &= Q(**qd("statement__id", param)) | Q(**qd("statement__local_id", param))
+            q &= Q(**qd("statements__identifier", param)) | Q(
+                **qd("statements__local_id", param)
+            )
 
         if param := request.query_params.get("sourceId"):
             if repo == None and not is_uri(param):
                 return NOT_URI_RESPONSE
-            q &= Q(**qd("source__id", param)) | Q(**qd("source__local_id", param))
+            q &= Q(**qd("source__identifier", param)) | Q(
+                **qd("source__local_id", param)
+            )
 
         if param := request.query_params.get("personId"):
             if repo == None and not is_uri(param):
                 return NOT_URI_RESPONSE
-            q &= Q(**qd("person__id", param)) | Q(**qd("person__local_id", param))
+            q &= Q(**qd("person__identifier", param)) | Q(
+                **qd("person__local_id", param)
+            )
 
         # Now create queryset with previously defined q object and add statement filters
-        queryset = object_class.objects.filter(q)
+        queryset = queryset.filter(q)
 
         statement_filters = build_statement_filters(request)
 
@@ -258,7 +282,7 @@ def list_view(object_class):
                 # Get the statements that correspond to that filter
                 statements = Statement.objects.filter(sf)
                 # Apply as a filter to queryset
-                queryset = queryset.filter(**qd("statement__in", statements))
+                queryset = queryset.filter(**qd("statements__in", statements))
 
         elif request.query_params.get("independentStatements") == "matchAny":
             st_q = Q()
@@ -267,7 +291,7 @@ def list_view(object_class):
             # ...get that statement...
             statements = Statement.objects.filter(st_q)
             # ...and then apply it as a filter on the queryset
-            queryset = queryset.filter(**qd("statement__in", statements))
+            queryset = queryset.filter(**qd("statements__in", statements))
 
         elif statement_filters:
             # Otherwise, build a Q object ANDing together each statement filter...
@@ -277,7 +301,7 @@ def list_view(object_class):
             # ...get that statement...
             statements = Statement.objects.filter(st_q)
             # ...and then apply it as a filter on the queryset
-            queryset = queryset.filter(**qd("statement__in", statements))
+            queryset = queryset.filter(**qd("statements__in", statements))
 
         # Get serialized results from Solr, adding in any fulltext lookups
         solr_pks = [r.pk for r in queryset.distinct()]
@@ -330,12 +354,17 @@ def retrieve_view(object_class):
                 },
             )
 
+        ipif_type = object_class.__name__.lower()
         index = globals()[f"{object_class.__name__}Index"]
+        if not repo and object_class.__name__ == "Person":
+            index = MergePersonIndex
+            ipif_type = "mergeperson"
+        elif not repo and object_class.__name__ == "Source":
+            index = MergeSourceIndex
+            ipif_type = "mergesource"
 
-        sq = (
-            SQ(id=f"ipif_hub.{object_class.__name__.lower()}.{pk}")
-            | SQ(uris=pk)
-            | (SQ(local_id=pk) & SQ(ipif_type=object_class.__name__.lower()))
+        sq = SQ(ipif_type=ipif_type) & (
+            SQ(identifier=pk) | SQ(uris=pk) | (SQ(local_id=pk))
         )
 
         if repo:
@@ -349,11 +378,11 @@ def retrieve_view(object_class):
     return inner
 
 
-def build_viewset(object_class) -> viewsets.ViewSet:
-    viewset = f"{object_class.__name__}ViewSet"
-    # serializer = globals()[f"{object_class.__name__}Serializer"]
-    return type(
-        viewset,
+def build_viewset(object_class: Type[IpifEntityAbstractBase]) -> Type[viewsets.ViewSet]:
+    viewset_name = f"{object_class.__name__}ViewSet"
+
+    vs: Type[viewsets.ViewSet] = type(
+        viewset_name,
         (viewsets.ViewSet,),
         {
             # "pagination_class": StandardResultsSetPagination, # does not work
@@ -361,6 +390,7 @@ def build_viewset(object_class) -> viewsets.ViewSet:
             "retrieve": retrieve_view(object_class),
         },
     )
+    return vs
 
 
 # Construct these viewsets

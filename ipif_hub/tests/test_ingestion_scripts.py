@@ -1,32 +1,24 @@
-from copy import deepcopy
 import datetime
-from typing import Dict
+
 import pytest
 
+from ipif_hub.management.utils.ingest_data import (
+    NO_CHANGE_TO_DATA,
+    DataFormatError,
+    DataIntegrityError,
+    ingest_data,
+    ingest_factoid,
+    ingest_person_or_source,
+    ingest_statement,
+)
 from ipif_hub.models import (
     Factoid,
     IpifRepo,
     Person,
     Source,
-    URI,
     Statement,
     get_ipif_hub_repo_AUTOCREATED_instance,
 )
-from ipif_hub.management.utils.ingest_data import (
-    DataFormatError,
-    DataIntegrityError,
-    ingest_factoid,
-    ingest_person_or_source,
-    ingest_statement,
-    ingest_data,
-    NO_CHANGE_TO_DATA,
-)
-
-from ipif_hub.tests.conftest import factoid, repo
-
-"""
-TEST PERSON INGESTION
-"""
 
 
 @pytest.fixture
@@ -78,9 +70,11 @@ def person1_data_error():
 def test_ingest_person_with_valid_data(repo: IpifRepo, person1_data: dict):
     ingest_person_or_source(Person, person1_data, repo)
 
-    p: Person = Person.objects.get(pk="http://test.com/persons/Person1")
+    p: Person = Person.objects.get(identifier="http://test.com/persons/Person1")
     assert p
-    assert p.uris.first().uri == "http://other.com/person1"
+    assert p.uris
+    # assert p.uris.filter(uri="http://test.com/persons/Person1")
+    assert p.uris.filter(uri="http://other.com/person1")
     assert p.local_id == "Person1"
     assert p.createdBy == "Researcher1"
     assert p.createdWhen == datetime.date(2012, 4, 23)
@@ -130,10 +124,11 @@ def test_ingest_person_with_updated_data(
         repo,
     )
 
-    p: Person = Person.objects.get(pk="http://test.com/persons/Person1")
+    p: Person = Person.objects.get(identifier="http://test.com/persons/Person1")
 
     assert p
-    assert p.uris.first().uri == "http://changed.com/person1"
+    assert p.uris.filter(uri="http://changed.com/person1")
+    # assert p.uris.filter(uri="http://test.com/persons/Person1")
     assert p.local_id == "Person1"
     assert p.createdBy == "Researcher1"
     assert p.createdWhen == datetime.date(2012, 4, 23)
@@ -141,7 +136,8 @@ def test_ingest_person_with_updated_data(
     assert p.modifiedWhen == datetime.date(2015, 4, 23)
 
     # Check the URI has been replaced, not added to
-    assert len(p.uris.all()) == 1
+    assert "http://other.com/person1" not in {uri.uri for uri in p.uris.all()}
+    assert "http://changed.com/person1" in {uri.uri for uri in p.uris.all()}
 
 
 """
@@ -198,9 +194,10 @@ def source1_data_error():
 def test_ingest_source_with_valid_data(repo: IpifRepo, source1_data: dict):
     ingest_person_or_source(Source, source1_data, repo)
 
-    p: Source = Source.objects.get(pk="http://test.com/sources/Source1")
+    p: Source = Source.objects.get(identifier="http://test.com/sources/Source1")
     assert p
-    assert p.uris.first().uri == "http://other.com/source1"
+    assert p.uris.filter(uri="http://other.com/source1")
+    # assert p.uris.filter(uri="http://test.com/sources/Source1")
     assert p.local_id == "Source1"
     assert p.createdBy == "Researcher1"
     assert p.createdWhen == datetime.date(2012, 4, 23)
@@ -250,18 +247,20 @@ def test_ingest_source_with_updated_data(
         repo,
     )
 
-    p: Source = Source.objects.get(pk="http://test.com/sources/Source1")
+    s: Source = Source.objects.get(identifier="http://test.com/sources/Source1")
 
-    assert p
-    assert p.uris.first().uri == "http://changed.com/source1"
-    assert p.local_id == "Source1"
-    assert p.createdBy == "Researcher1"
-    assert p.createdWhen == datetime.date(2012, 4, 23)
-    assert p.modifiedBy == "Researcher2"
-    assert p.modifiedWhen == datetime.date(2015, 4, 23)
+    assert s
+    assert s.uris.filter(uri="http://changed.com/source1")
+    # assert p.uris.filter(uri="http://test.com/sources/Source1")
+    assert s.local_id == "Source1"
+    assert s.createdBy == "Researcher1"
+    assert s.createdWhen == datetime.date(2012, 4, 23)
+    assert s.modifiedBy == "Researcher2"
+    assert s.modifiedWhen == datetime.date(2015, 4, 23)
 
     # Check the URI has been replaced, not added to
-    assert len(p.uris.all()) == 1
+    assert "http://other.com/source1" not in {uri.uri for uri in s.uris.all()}
+    assert "http://changed.com/source1" in {uri.uri for uri in s.uris.all()}
 
 
 @pytest.fixture
@@ -321,7 +320,7 @@ def test_statement_ingestion_with_valid_data(repo: IpifRepo, statement1_data: di
     ingest_statement(statement1_data, repo)
 
     st: Statement = Statement.objects.get(
-        pk="http://test.com/statements/St1-John-Smith-Name"
+        identifier="http://test.com/statements/St1-John-Smith-Name"
     )
     assert st.local_id == "St1-John-Smith-Name"
     assert st.label == "John Smith is called John Smith"
@@ -389,7 +388,7 @@ def test_statement_ingestion_with_updated_data(
     ingest_statement(statement1_data_update, repo)
 
     st: Statement = Statement.objects.get(
-        pk="http://test.com/statements/St1-John-Smith-Name"
+        identifier="http://test.com/statements/St1-John-Smith-Name"
     )
     assert st.local_id == "St1-John-Smith-Name"
     assert st.label == "John Smith is called John Smuth"
@@ -436,18 +435,20 @@ def test_ingest_factoid_with_valid_data_and_refs_already_created(
     ingest_statement(statement1_data, repo)
     ingest_factoid(factoid1_data, repo)
 
-    f: Factoid = Factoid.objects.get(pk="http://test.com/factoids/Factoid1")
+    f: Factoid = Factoid.objects.get(identifier="http://test.com/factoids/Factoid1")
     assert f.local_id == "Factoid1"
     assert f.createdBy == "Researcher1"
     assert f.createdWhen == datetime.date(2012, 4, 23)
     assert f.modifiedBy == "Researcher1"
     assert f.modifiedWhen == datetime.date(2012, 4, 23)
 
-    assert f.person == Person.objects.get(pk="http://test.com/persons/Person1")
-    assert f.source == Source.objects.get(pk="http://test.com/sources/Source1")
+    assert f.person == Person.objects.get(identifier="http://test.com/persons/Person1")
+    assert f.source == Source.objects.get(identifier="http://test.com/sources/Source1")
     assert (
-        Statement.objects.get(pk="http://test.com/statements/St1-John-Smith-Name")
-        in f.statement.all()
+        Statement.objects.get(
+            identifier="http://test.com/statements/St1-John-Smith-Name"
+        )
+        in f.statements.all()
     )
 
 
@@ -551,22 +552,6 @@ def factoid1_data_error():
     return data
 
 
-@pytest.mark.django_db
-def test_ingest_factoid_fails_with_missing_statement_ref(
-    repo: IpifRepo,
-    factoid1_data_error: dict,
-    person1_data: dict,
-    source1_data: dict,
-    statement1_data: dict,
-):
-    ingest_person_or_source(Person, person1_data, repo)
-    ingest_person_or_source(Source, source1_data, repo)
-    ingest_statement(statement1_data, repo)
-
-    with pytest.raises(DataFormatError) as e:
-        ingest_factoid(factoid1_data_error, repo)
-
-
 @pytest.fixture
 def statement2_data():
     data = {
@@ -607,25 +592,29 @@ def test_ingest_factoid_with_updated_data(
 
     ingest_factoid(factoid1_data_update, repo)
 
-    f: Factoid = Factoid.objects.get(pk="http://test.com/factoids/Factoid1")
+    f: Factoid = Factoid.objects.get(identifier="http://test.com/factoids/Factoid1")
     assert f.local_id == "Factoid1"
     assert f.createdBy == "Researcher1"
     assert f.createdWhen == datetime.date(2012, 4, 23)
     assert f.modifiedBy == "Researcher2"
     assert f.modifiedWhen == datetime.date(2012, 4, 24)
 
-    assert f.person == Person.objects.get(pk="http://test.com/persons/Person1")
-    assert f.source == Source.objects.get(pk="http://test.com/sources/Source1")
+    assert f.person == Person.objects.get(identifier="http://test.com/persons/Person1")
+    assert f.source == Source.objects.get(identifier="http://test.com/sources/Source1")
     assert (
-        Statement.objects.get(pk="http://test.com/statements/St1-John-Smith-Name")
-        in f.statement.all()
+        Statement.objects.get(
+            identifier="http://test.com/statements/St1-John-Smith-Name"
+        )
+        in f.statements.all()
     )
     assert (
-        Statement.objects.get(pk="http://test.com/statements/St2-jsmith-teacher")
-        in f.statement.all()
+        Statement.objects.get(
+            identifier="http://test.com/statements/St2-jsmith-teacher"
+        )
+        in f.statements.all()
     )
 
-    p: Person = Person.objects.get(pk="http://persons.com/mrsSpenceley")
+    p: Person = Person.objects.get(identifier="http://persons.com/mrsSpenceley")
     assert p.ipif_repo == AUTOCREATED
 
 

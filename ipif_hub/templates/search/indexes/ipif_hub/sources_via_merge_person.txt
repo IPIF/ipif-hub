@@ -1,0 +1,15 @@
+{% for person in object.persons.all %}
+
+{% for factoid in person.factoids.all %}
+
+{{ factoid.source.id }}
+{{ factoid.source.label }}
+{% for uri in factoid.source.uris.all %}
+    {{ uri.uri }}
+{% endfor %}
+{{ factoid.source.createdBy }}
+{{ factoid.source.modifiedBy }}
+
+{% endfor %}
+
+{% endfor %}

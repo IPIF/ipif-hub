@@ -1,4 +1,8 @@
-{% for statement in object.statements.all %}
+{% for person in object.persons.all %}
+
+{% for factoid in person.factoids.all %}
+
+{% for statement in factoid.statements.all %}
 
 {{ statement.pk }}
 {{ statement.statementType_label|default_if_none:"" }}
@@ -21,5 +25,8 @@
 {{ statement.memberOf_label|default_if_none:"" }}
 {{ statement.statementText|default_if_none:"" }}
 
+{% endfor %}
+
+{% endfor %}
 
 {% endfor %}

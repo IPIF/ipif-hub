@@ -1,44 +1,76 @@
-from io import StringIO
-import json
+import datetime
 import sys
-
-from django.core.mail import send_mail
+from io import StringIO
 
 from celery import shared_task
-from celery.contrib import rdb
 from celery.utils.log import get_task_logger
 
+from ipif_hub.management.utils.ingest_data import ingest_data
+from ipif_hub.models import (
+    Factoid,
+    IngestionJob,
+    MergePerson,
+    MergeSource,
+    Person,
+    Source,
+    Statement,
+)
 from ipif_hub.search_indexes import (
     FactoidIndex,
+    MergePersonIndex,
+    MergeSourceIndex,
     PersonIndex,
     SourceIndex,
     StatementIndex,
 )
-from ipif_hub.models import Factoid, Person, Source, Statement, IngestionJob
-from ipif_hub.management.utils.ingest_data import ingest_data
-
 
 logger = get_task_logger(__name__)
 
 
 @shared_task
+def update_merge_person_index(instance_pk):
+    merge_person_searches = MergePersonIndex.objects.filter(django_id=instance_pk)
+    for merge_person_search in merge_person_searches:
+        merge_person_search.searchindex.update_object(
+            MergePerson.objects.get(pk=instance_pk)
+        )
+
+
+@shared_task
+def update_merge_source_index(instance_pk):
+    merge_source_searches = MergeSourceIndex.objects.filter(django_id=instance_pk)
+    for merge_source_search in merge_source_searches:
+        merge_source_search.searchindex.update_object(
+            MergeSource.objects.get(pk=instance_pk)
+        )
+
+
+@shared_task
 def update_factoid_index(instance_pk):
+
     logger.debug(msg=instance_pk)
     factoid_searches = FactoidIndex.objects.filter(django_id=instance_pk)
     for factoid_search in factoid_searches:
         factoid_search.searchindex.update_object(Factoid.objects.get(pk=instance_pk))
 
     person = Factoid.objects.get(pk=instance_pk).person
+
     person_searches = PersonIndex.objects.filter(django_id=person.pk)
     for person_search in person_searches:
         person_search.searchindex.update_object(person)
+
+    if merge_person := person.merge_person.first():
+        update_merge_person_index(merge_person.pk)
 
     source = Factoid.objects.get(pk=instance_pk).source
     source_searches = SourceIndex.objects.filter(django_id=source.pk)
     for source_search in source_searches:
         source_search.searchindex.update_object(source)
 
-    statements = Factoid.objects.get(pk=instance_pk).statement.all()
+    if merge_source := source.merge_source.first():
+        update_merge_source_index(merge_source.pk)
+
+    statements = Factoid.objects.get(pk=instance_pk).statements.all()
     for statement in statements:
         statement_searches = StatementIndex.objects.filter(django_id=statement.pk)
         for statement_search in statement_searches:
@@ -52,6 +84,9 @@ def update_person_index(instance_pk):
 
     for factoid in person.factoids.all():
         update_factoid_index.delay(factoid.pk)
+
+    # if merge_person := person.merge_person.first():
+    #    update_merge_person_index(merge_person.pk)
 
 
 @shared_task
@@ -83,10 +118,6 @@ class Capturing(list):
         self.extend(self._stringio.getvalue().splitlines())
         del self._stringio  # free up some memory
         sys.stdout = self._stdout
-
-
-import datetime
-import time
 
 
 @shared_task

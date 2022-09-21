@@ -1,2 +1,4 @@
-# Each indexed item needs *all* full-text searchable options (not just 'text'): p, f, st, s
+- Add on_delete hook for person, to check whether it's used as a related person and replace if so;
+- On create, check whether it's a related_person (AUTOCREATED) in the same repo, and replace if so
+
 

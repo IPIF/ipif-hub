@@ -205,3 +205,7 @@ CELERY_ACCEPT_CONTENT = ["application/json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "UTC"
+
+
+# Set this here in order to build uris relative to wherever it's hosted
+IPIF_BASE_URI = "http://localhost:8000"

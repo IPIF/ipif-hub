@@ -1,17 +1,14 @@
-from crypt import methods
 from django.urls import path
 
-from .views import (
-    IpifRepoCreateView,
-    IpifRepoView,
-    create_user,
-    IpifRepoListView,
-    IpifRepoEditView,
+from ipif_hub.views import (
     BatchUpload,
     IngestionJobView,
+    IpifRepoCreateView,
+    IpifRepoEditView,
+    IpifRepoListView,
+    IpifRepoView,
+    create_user,
 )
-
-from .models import IpifRepo
 
 urlpatterns = [
     path("repo/new/", IpifRepoCreateView.as_view()),

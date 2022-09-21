@@ -1,0 +1,17 @@
+{% for source in object.sources.all %}
+
+{{ source.id }}
+{{ source.label }}
+{% for uri in source.uris.all %}
+    {{ uri.uri }}
+{% endfor %}
+{{ source.createdBy }}
+{{ source.createdWhen}}
+{{ source.modifiedBy }}
+{{ source.modifiedWhen }}
+
+{% endfor %}
+{{ object.createdBy }}
+{{ object.createdWhen}}
+{{ object.modifiedBy }}
+{{ object.modifiedWhen }}

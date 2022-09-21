@@ -1,7 +1,15 @@
-import re
 from rest_framework import serializers
 
-from .models import Person, URI, Factoid, Place, Source, Statement
+from ipif_hub.models import (
+    URI,
+    Factoid,
+    MergePerson,
+    MergeSource,
+    Person,
+    Place,
+    Source,
+    Statement,
+)
 
 
 class URISerlializer(serializers.ModelSerializer):
@@ -10,14 +18,7 @@ class URISerlializer(serializers.ModelSerializer):
         fields = ["uri"]
 
 
-class GenericRefSerializer:
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        id = data.pop("id", "")
-        return {"@id": id, **data}
-
-
-class PlacesSerializer(serializers.ModelSerializer):
+class PlaceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Place
         fields = ["uri", "label"]
@@ -27,39 +28,46 @@ class PlacesSerializer(serializers.ModelSerializer):
         return {"label": data["label"], "uri": data["uri"]}
 
 
+class GenericRefSerializer:
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        id = data.pop("identifier", "")
+        return {"@id": id, **data}
+
+
 class PersonRefSerializer(GenericRefSerializer, serializers.ModelSerializer):
     class Meta:
         model = Person
-        fields = ["id", "label"]
+        fields = ["identifier", "label"]
 
 
 class SourceRefSerializer(GenericRefSerializer, serializers.ModelSerializer):
     class Meta:
         model = Source
-        fields = ["id", "label"]
+        fields = ["identifier", "label"]
 
 
 class StatementRefSerializer(GenericRefSerializer, serializers.ModelSerializer):
     class Meta:
         model = Statement
-        fields = ["id", "label"]
+        fields = ["identifier", "label"]
 
 
 class FactoidRefSerializer(GenericRefSerializer, serializers.ModelSerializer):
 
     person = PersonRefSerializer()
     source = SourceRefSerializer()
-    statement = StatementRefSerializer(many=True)
+    statements = StatementRefSerializer(many=True)
 
     class Meta:
         model = Factoid
-        fields = ["id", "label", "person", "source", "statement"]
+        fields = ["identifier", "label", "person", "source", "statements"]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         person = data.pop("person")
         source = data.pop("source")
-        statements = data.pop("statement")
+        statements = data.pop("statements")
         return {
             **data,
             "person-ref": person,
@@ -72,11 +80,12 @@ class FactoidSerializer(FactoidRefSerializer):
     class Meta:
         model = Factoid
         fields = [
+            "identifier",
             "id",
             "label",
             "person",
             "source",
-            "statement",
+            "statements",
             "createdBy",
             "createdWhen",
             "modifiedBy",
@@ -91,6 +100,7 @@ class PersonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Person
         fields = [
+            "identifier",
             "id",
             "label",
             "uris",
@@ -104,17 +114,20 @@ class PersonSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        id = data.pop("id", "")
+        id = data.pop("identifier", "no")
         label = data.pop("label", "")
         factoids = data.pop("factoids")
         uris = [v["uri"] for v in data.pop("uris")]
-        return {
+
+        return_data = {
             "@id": id,
             "label": label,
             "uris": uris,
             **data,
             "factoid-refs": factoids,
         }
+
+        return return_data
 
 
 class SourceSerializer(serializers.ModelSerializer):
@@ -124,6 +137,7 @@ class SourceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Source
         fields = [
+            "identifier",
             "id",
             "label",
             "uris",
@@ -137,12 +151,13 @@ class SourceSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        id = data.pop("id", "")
+        identifier = data.pop("identifier", "")
         label = data.pop("label", "")
         factoids = data.pop("factoids")
+
         uris = [v["uri"] for v in data.pop("uris")]
         return {
-            "@id": id,
+            "@id": identifier,
             "label": label,
             "uris": uris,
             **data,
@@ -151,7 +166,7 @@ class SourceSerializer(serializers.ModelSerializer):
 
 
 class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
-    places = PlacesSerializer(many=True)
+    places = PlaceSerializer(many=True)
     factoids = FactoidRefSerializer(many=True)
 
     class Meta:
@@ -163,6 +178,7 @@ class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
             "ipif_repo",
             "hubIngestedWhen",
             "hubModifiedWhen",
+            "id",
         ]
 
     def to_representation(self, instance):
@@ -183,8 +199,59 @@ class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
                 else:
                     return_dict[field] = {subfield: v}
             elif k == "relatesToPerson":
-                return_dict[k] = [{"uri": p["id"], "label": p["label"]} for p in v]
+                return_dict[k] = [
+                    {"uri": p["identifier"], "label": p["label"]} for p in v
+                ]
             else:
                 return_dict[k] = v
         return_dict["factoid-refs"] = return_dict.pop("factoids")
+
         return return_dict
+
+
+class MergePersonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MergePerson
+        exclude = ["persons"]
+
+    def to_representation(self, instance: MergePerson):
+
+        data = super().to_representation(instance)
+        id = data.pop("id")
+
+        return_data = {"@id": id, **data}
+        return_data["uris"] = list(instance.uri_set)
+
+        return_data["factoid-refs"] = []
+
+        for person in instance.persons.all():
+            if factoids := person.factoids.all():
+                return_data["factoid-refs"] += FactoidRefSerializer(
+                    factoids, many=True
+                ).data
+
+        return return_data
+
+
+class MergeSourceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MergeSource
+        exclude = ["sources"]
+
+    def to_representation(self, instance: MergeSource):
+
+        data = super().to_representation(instance)
+        id = data.pop("id")
+
+        return_data = {"@id": id, **data}
+        return_data["uris"] = list(instance.uri_set)
+
+        return_data["factoid-refs"] = []
+
+        for source in instance.sources.all():
+            if factoids := source.factoids.all():
+                return_data["factoid-refs"] += FactoidRefSerializer(
+                    factoids, many=True
+                ).data
+
+        return return_data

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Factoid, IpifRepo, Person, Place, Statement, Source, URI
+from .models import URI, Factoid, IpifRepo, Person, Place, Source, Statement
 
 admin.site.register(Factoid)
 admin.site.register(IpifRepo)
