@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from ipif_hub.models import Factoid, MergePerson, Person, Source, Statement
+from ipif_hub.models import Factoid, MergePerson, MergeSource, Person, Source, Statement
 from ipif_hub.search_indexes import MergePersonIndex, MergeSourceIndex, PersonIndex
 from ipif_hub.tests.conftest import created_modified
 
@@ -142,3 +142,20 @@ def test_merge_person_deleted_from_index(
 
     merge_persons = MergePersonIndex.objects.filter(ipif_type="mergeperson")
     assert len(merge_persons) == 0
+
+
+@pytest.mark.django_db(transaction=True)
+def test_merge_source_deleted_from_index(
+    person,
+    statement,
+    source,
+    sourceSameAs,
+    factoid,
+):
+    merge_sources = MergeSourceIndex.objects.filter(ipif_type="mergesource")
+    assert len(merge_sources) == 1
+
+    MergeSource.objects.first().delete()
+
+    merge_sources = MergeSourceIndex.objects.filter(ipif_type="mergesource")
+    assert len(merge_sources) == 0
