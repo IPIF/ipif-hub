@@ -125,3 +125,20 @@ def test_merge_source_created(
     assert data
     assert data["factoid-refs"]
     assert data["factoid-refs"][0]["@id"] == "http://test.com/factoids/factoid1"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_merge_person_deleted_from_index(
+    person,
+    statement2,
+    source,
+    factoid2,
+    person_sameAs,
+):
+    merge_persons = MergePersonIndex.objects.filter(ipif_type="mergeperson")
+    assert len(merge_persons) == 1
+
+    MergePerson.objects.first().delete()
+
+    merge_persons = MergePersonIndex.objects.filter(ipif_type="mergeperson")
+    assert len(merge_persons) == 0
