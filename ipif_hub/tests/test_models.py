@@ -2,6 +2,7 @@ import pytest
 from django.db import IntegrityError
 
 from ipif_hub.models import IpifRepo, MergePerson, MergeSource, Person, Source
+from ipif_hub.signals.handlers import build_extra_uris
 from ipif_hub.tests.conftest import created_modified, test_repo_no_slug
 
 # from ipif_hub.search_indexes import PersonIndex
@@ -86,6 +87,19 @@ def test_merge_source_created_by_source_created(repo, sourceNotSameAs, factoid):
     assert sourceNotSameAs in Source.objects.all()
 
     assert MergeSource.objects.all()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_source_has_additional_uris_on_save(repo, source, factoid):
+    assert source in Source.objects.all()
+
+    uris = {uri.uri for uri in source.uris.all()}
+    assert uris == {
+        "http://sources.com/source1",
+        "http://sources.com/sourceSameAs",
+        "http://test.com/sources/source1",
+        *build_extra_uris(source),
+    }
 
 
 """

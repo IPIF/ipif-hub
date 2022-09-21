@@ -17,6 +17,7 @@ from ipif_hub.serializers import (
     StatementSerializer,
     URISerlializer,
 )
+from ipif_hub.signals.handlers import build_extra_uris
 from ipif_hub.tests.conftest import created_modified
 
 
@@ -99,6 +100,13 @@ def test_source_serializer(source, factoid):
     assert serialized_data.get("label") == "Source One"
     verify_created_modified(serialized_data)
     verify_associated_factoid_ref(serialized_data)
+
+    assert set(serialized_data.get("uris")) == {
+        "http://test.com/sources/source1",
+        "http://sources.com/source1",
+        "http://sources.com/sourceSameAs",
+        *build_extra_uris(source),
+    }
 
 
 @pytest.mark.django_db(transaction=True)
@@ -267,7 +275,14 @@ def test_merge_source_serializer(
     # No guaranteed order for returning these!
     uris = set(serialized_data.pop("uris"))
     assert uris == set(
-        ["http://sources.com/source1", "http://sources.com/sourceSameAs"]
+        [
+            "http://sources.com/source1",
+            "http://sources.com/sourceSameAs",
+            "http://test.com/sources/source1",
+            "http://test.com/sources/sourceSameAs",
+            *build_extra_uris(source),
+            *build_extra_uris(sourceSameAs),
+        ]
     )
 
     assert serialized_data == {

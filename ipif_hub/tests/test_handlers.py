@@ -1,6 +1,7 @@
 import datetime
 
 import pytest
+from django.conf import settings
 
 from ipif_hub.models import (
     URI,
@@ -12,6 +13,9 @@ from ipif_hub.models import (
     get_ipif_hub_repo_AUTOCREATED_instance,
 )
 from ipif_hub.signals.handlers import (
+    add_extra_uris,
+    build_extra_uris,
+    build_uri_from_base,
     handle_merge_person_from_person_update,
     handle_merge_source_from_source_update,
 )
@@ -407,3 +411,36 @@ def test_handle_delete_source_updates_merge_sources(repo):
             sources_to_account_for.remove(source)
 
     assert sources_to_account_for == []
+
+
+@pytest.mark.django_db(transaction=True)
+def test_build_uri_from_base(source):
+    assert (
+        build_uri_from_base(source, source.local_id, repo="test-repo")
+        == f"{settings.IPIF_BASE_URI}/test-repo/ipif/sources/source1"
+    )
+    assert (
+        build_uri_from_base(source, source.identifier)
+        == f"{settings.IPIF_BASE_URI}/ipif/sources/http://test.com/sources/source1"
+    )
+
+
+@pytest.mark.django_db(transaction=True)
+def test_build_extra_uris(source):
+    assert build_extra_uris(source) == [
+        source.identifier,
+        f"{settings.IPIF_BASE_URI}/ipif/sources/http://test.com/sources/source1",
+        f"{settings.IPIF_BASE_URI}/testrepo/ipif/sources/source1",
+        f"{settings.IPIF_BASE_URI}/testrepo/ipif/sources/http://test.com/sources/source1",
+    ]
+
+
+@pytest.mark.django_db(transaction=True)
+def test_add_extra_uris(source):
+    add_extra_uris(source)
+
+    assert {uri.uri for uri in source.uris.all()} == {
+        "http://sources.com/source1",
+        "http://sources.com/sourceSameAs",
+        *build_extra_uris(source),
+    }
