@@ -279,11 +279,55 @@ def person_post_save(sender, instance: Person, **kwargs):
     transaction.on_commit(lambda: update_person_index.delay(instance.pk))
 
 
+def split_merge_person_on_uri_delete(instance, kwargs):
+    if mp := instance.merge_person.first():
+        uris_to_group = [
+            [uri.uri for uri in person.uris.all()] for person in mp.persons.all()
+        ]
+        merged_uri_groups = merge_uri_sets(uris_to_group)
+        if len(merged_uri_groups) > 1:
+            for uri_group in merged_uri_groups:
+                persons = Person.objects.filter(uris__uri__in=uri_group).distinct()
+                new_merged_person = MergePerson(
+                    createdBy="ipif-hub",
+                    createdWhen=datetime.date.today(),
+                    modifiedBy="ipif-hub",
+                    modifiedWhen=datetime.date.today(),
+                )
+                new_merged_person.save()
+                new_merged_person.persons.add(*persons)
+
+            mp.delete()
+
+
+def split_merge_source_on_uri_delete(instance, kwargs):
+    if ms := instance.merge_source.first():
+        uris_to_group = [
+            [uri.uri for uri in source.uris.all()] for source in ms.sources.all()
+        ]
+        merged_uri_groups = merge_uri_sets(uris_to_group)
+        if len(merged_uri_groups) > 1:
+            for uri_group in merged_uri_groups:
+                sources = Source.objects.filter(uris__uri__in=uri_group).distinct()
+                new_merged_source = MergeSource(
+                    createdBy="ipif-hub",
+                    createdWhen=datetime.date.today(),
+                    modifiedBy="ipif-hub",
+                    modifiedWhen=datetime.date.today(),
+                )
+                new_merged_source.save()
+                new_merged_source.sources.add(*sources)
+
+            ms.delete()
+
+
 @receiver(m2m_changed, sender=Person.uris.through)
 def person_m2m_changed(sender, instance, **kwargs):
-    """TODO: If a URI is removed from a person, we need to see whether this has broken
+    """If a URI is removed from a person, we need to see whether this has broken
     any merge-persons. So, we run the merge_uri_sets to check whether there is more
     than one set: if so, delete the original merge_person and create new ones; otherwise, it's fine."""
+    if kwargs["action"] == "post_remove":
+        split_merge_person_on_uri_delete(instance, kwargs)
 
     handle_merge_person_from_person_update(instance)
     transaction.on_commit(lambda: update_person_index.delay(instance.pk))
@@ -305,9 +349,8 @@ def source_post_save(sender, instance: Source, **kwargs):
 
 @receiver(m2m_changed, sender=Source.uris.through)
 def source_m2m_changed(sender, instance, **kwargs):
-    """TODO: If a URI is removed from a source, we need to see whether this has broken
-    any merge-sources. So, we run the merge_uri_sets to check whether there is more
-    than one set: if so, delete the original merge_source and create new ones; otherwise, it's fine."""
+    if kwargs["action"] == "post_remove":
+        split_merge_source_on_uri_delete(instance, kwargs)
 
     handle_merge_source_from_source_update(instance)
     transaction.on_commit(lambda: update_source_index.delay(instance.pk))

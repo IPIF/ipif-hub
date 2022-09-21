@@ -349,6 +349,141 @@ def test_handle_delete_person_updates_merge_persons(repo):
 
 
 @pytest.mark.django_db(transaction=True)
+def test_handle_remove_irrelevant_uri_does_nothing_to_merge_persons(repo):
+
+    # Set up — create three persons with a joining URI
+    uri1 = URI(uri="http://one.com")
+    uri1.save()
+
+    uri2 = URI(uri="http://two.com")
+    uri2.save()
+
+    p1 = Person(
+        local_id="person1",
+        label="person1",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    p1.save()
+    p1.uris.add(uri1)
+
+    p4 = Person(
+        local_id="person4",
+        label="person4",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    p4.save()
+    p4.uris.add(uri1)
+
+    p2 = Person(
+        local_id="person2",
+        label="person2",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    p2.save()
+    p2.uris.add(uri2)
+
+    p3 = Person(
+        local_id="person3",
+        label="person3",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    p3.save()
+    uri_irrelevant = URI(uri="http://irrelevant.com")
+    uri_irrelevant.save()
+
+    p3.uris.add(uri1, uri2, uri_irrelevant)
+
+    merge_persons = MergePerson.objects.all()
+    assert len(merge_persons) == 1
+
+    # Now test
+    p3.uris.remove(uri_irrelevant)
+
+    merge_persons = MergePerson.objects.all()
+    assert len(merge_persons) == 1
+
+    # Check that all the persons are attached to a MergePerson object
+    persons_to_account_for = [p1, p2, p3, p4]
+
+    for mp in merge_persons:
+        for person in mp.persons.all():
+            persons_to_account_for.remove(person)
+
+    assert persons_to_account_for == []
+
+
+@pytest.mark.django_db(transaction=True)
+def test_handle_remove_linking_uri_creates_merge_persons(repo):
+
+    # Set up — create three persons with a joining URI
+    uri1 = URI(uri="http://one.com")
+    uri1.save()
+
+    uri2 = URI(uri="http://two.com")
+    uri2.save()
+
+    p1 = Person(
+        local_id="person1",
+        label="person1",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    p1.save()
+    p1.uris.add(uri1)
+
+    p4 = Person(
+        local_id="person4",
+        label="person4",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    p4.save()
+    p4.uris.add(uri1)
+
+    p2 = Person(
+        local_id="person2",
+        label="person2",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    p2.save()
+    p2.uris.add(uri2)
+
+    p3 = Person(
+        local_id="person3",
+        label="person3",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    p3.save()
+
+    p3.uris.add(uri1, uri2)
+
+    merge_persons = MergePerson.objects.all()
+    assert len(merge_persons) == 1
+
+    # Now test
+    p3.uris.remove(uri2)
+
+    merge_persons = MergePerson.objects.all()
+    assert len(merge_persons) == 2
+
+    # Check that all the persons are attached to a MergePerson object
+    persons_to_account_for = [p1, p2, p3, p4]
+
+    for mp in merge_persons:
+        for person in mp.persons.all():
+            if person in persons_to_account_for:
+                persons_to_account_for.remove(person)
+
+    assert persons_to_account_for == []
+
+
+@pytest.mark.django_db(transaction=True)
 def test_handle_delete_source_updates_merge_sources(repo):
 
     # Set up — create three persons with a joining URI
@@ -409,6 +544,72 @@ def test_handle_delete_source_updates_merge_sources(repo):
     for ms in merge_sources:
         for source in ms.sources.all():
             sources_to_account_for.remove(source)
+
+    assert sources_to_account_for == []
+
+
+@pytest.mark.django_db(transaction=True)
+def test_handle_remove_linking_uri_creates_merge_sources(repo):
+
+    # Set up — create three persons with a joining URI
+    uri1 = URI(uri="http://one.com")
+    uri1.save()
+
+    uri2 = URI(uri="http://two.com")
+    uri2.save()
+
+    s1 = Source(
+        local_id="source1",
+        label="source1",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    s1.save()
+    s1.uris.add(uri1)
+
+    s4 = Source(
+        local_id="source4",
+        label="source4",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    s4.save()
+    s4.uris.add(uri1)
+
+    s2 = Source(
+        local_id="source2",
+        label="source2",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    s2.save()
+    s2.uris.add(uri2)
+
+    s3 = Source(
+        local_id="source3",
+        label="source3",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    s3.save()
+    s3.uris.add(uri1, uri2)
+
+    merge_sources = MergeSource.objects.all()
+    assert len(merge_sources) == 1
+
+    # Now test
+    s3.uris.remove(uri2)
+
+    merge_sources = MergeSource.objects.all()
+    assert len(merge_sources) == 2
+
+    # Check that all the persons are attached to a MergePerson object
+    sources_to_account_for = [s1, s2, s4]
+
+    for ms in merge_sources:
+        for source in ms.sources.all():
+            if source in sources_to_account_for:
+                sources_to_account_for.remove(source)
 
     assert sources_to_account_for == []
 
