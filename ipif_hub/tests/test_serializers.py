@@ -88,9 +88,16 @@ def test_person_serializer(person, factoid):
     serialized_data = PersonSerializer(person).data
     assert serialized_data.get("@id") == "http://test.com/persons/person1"
     assert serialized_data.get("label") == "Person One"
-    assert serialized_data.get("uris") == ["http://alternative.com/person1"]
     verify_created_modified(serialized_data)
     verify_associated_factoid_ref(serialized_data)
+
+    print(
+        build_extra_uris(person),
+    )
+    assert set(serialized_data.get("uris")) == {
+        "http://alternative.com/person1",
+        *build_extra_uris(person),
+    }
 
 
 @pytest.mark.django_db(transaction=True)
@@ -180,12 +187,20 @@ def test_merge_person_serializer(
     # but it's really fine so just don't bother
     serialized_data.pop("@id")
 
+    uris = set(serialized_data.pop("uris"))
+    assert uris == set(
+        [
+            "http://alternative.com/person1",
+            *build_extra_uris(person),
+            *build_extra_uris(person_sameAs),
+        ]
+    )
+
     assert serialized_data == {
         "createdBy": "ipif-hub",
         "createdWhen": str(datetime.date.today()),
         "modifiedBy": "ipif-hub",
         "modifiedWhen": str(datetime.date.today()),
-        "uris": ["http://alternative.com/person1"],
         "factoid-refs": [
             {
                 "@id": "http://test.com/factoids/factoid1",

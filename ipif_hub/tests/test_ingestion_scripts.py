@@ -136,7 +136,8 @@ def test_ingest_person_with_updated_data(
     assert p.modifiedWhen == datetime.date(2015, 4, 23)
 
     # Check the URI has been replaced, not added to
-    assert len(p.uris.all()) == 1
+    assert "http://other.com/person1" not in {uri.uri for uri in p.uris.all()}
+    assert "http://changed.com/person1" in {uri.uri for uri in p.uris.all()}
 
 
 """
@@ -246,19 +247,20 @@ def test_ingest_source_with_updated_data(
         repo,
     )
 
-    p: Source = Source.objects.get(identifier="http://test.com/sources/Source1")
+    s: Source = Source.objects.get(identifier="http://test.com/sources/Source1")
 
-    assert p
-    assert p.uris.filter(uri="http://changed.com/source1")
+    assert s
+    assert s.uris.filter(uri="http://changed.com/source1")
     # assert p.uris.filter(uri="http://test.com/sources/Source1")
-    assert p.local_id == "Source1"
-    assert p.createdBy == "Researcher1"
-    assert p.createdWhen == datetime.date(2012, 4, 23)
-    assert p.modifiedBy == "Researcher2"
-    assert p.modifiedWhen == datetime.date(2015, 4, 23)
+    assert s.local_id == "Source1"
+    assert s.createdBy == "Researcher1"
+    assert s.createdWhen == datetime.date(2012, 4, 23)
+    assert s.modifiedBy == "Researcher2"
+    assert s.modifiedWhen == datetime.date(2015, 4, 23)
 
     # Check the URI has been replaced, not added to
-    assert len(p.uris.all()) == 1
+    assert "http://other.com/source1" not in {uri.uri for uri in s.uris.all()}
+    assert "http://changed.com/source1" in {uri.uri for uri in s.uris.all()}
 
 
 @pytest.fixture

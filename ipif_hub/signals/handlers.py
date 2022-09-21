@@ -31,6 +31,46 @@ from ipif_hub.tasks import (
 AUTOCREATED = get_ipif_hub_repo_AUTOCREATED_instance()
 
 
+def build_uri_from_base(
+    instance: Union[Person, Source],
+    identifier: str,
+    repo: str = None,
+):
+    uri_template = settings.IPIF_BASE_URI + "/{}ipif/{}/{}"
+
+    if repo:
+        return uri_template.format(
+            repo + "/",
+            instance.__class__.__name__.lower() + "s",
+            identifier,
+        )
+    return uri_template.format(
+        "", instance.__class__.__name__.lower() + "s", identifier
+    )
+
+
+def build_extra_uris(instance):
+    repo_name = instance.ipif_repo.endpoint_slug
+    return [
+        instance.identifier,
+        build_uri_from_base(instance, instance.identifier),
+        build_uri_from_base(instance, instance.local_id, repo=repo_name),
+        build_uri_from_base(instance, instance.identifier, repo=repo_name),
+    ]
+
+
+def add_extra_uris(instance):
+    for u in build_extra_uris(instance):
+
+        try:
+            uri = URI.objects.get(uri=u)
+            instance.uris.add(uri)
+        except URI.DoesNotExist:
+            uri = URI(uri=u)
+            uri.save()
+            instance.uris.add(uri)
+
+
 def handle_merge_person_from_person_update(new_person: Person):
     """Receives a Person object"""
 
@@ -232,8 +272,8 @@ def factoid_post_save(sender, instance, **kwargs):
 @receiver(post_save, sender=Person)
 def person_post_save(sender, instance: Person, **kwargs):
     # handle_merge_person_from_person_update(instance)
-    """TODO: on person save, we need to take its identifier and add it as a URI
-    to the person...; also add recursive lookups and other possibilities as URIs"""
+
+    add_extra_uris(instance)
 
     handle_merge_person_from_person_update(instance)
     transaction.on_commit(lambda: update_person_index.delay(instance.pk))
@@ -253,46 +293,6 @@ def person_m2m_changed(sender, instance, **kwargs):
 def person_pre_delete(sender, instance, **kwargs):
 
     handle_delete_person_updating_merge_persons(instance)
-
-
-def build_uri_from_base(
-    instance: Union[Person, Source],
-    identifier: str,
-    repo: str = None,
-):
-    uri_template = settings.IPIF_BASE_URI + "/{}ipif/{}/{}"
-
-    if repo:
-        return uri_template.format(
-            repo + "/",
-            instance.__class__.__name__.lower() + "s",
-            identifier,
-        )
-    return uri_template.format(
-        "", instance.__class__.__name__.lower() + "s", identifier
-    )
-
-
-def build_extra_uris(instance):
-    repo_name = instance.ipif_repo.endpoint_slug
-    return [
-        instance.identifier,
-        build_uri_from_base(instance, instance.identifier),
-        build_uri_from_base(instance, instance.local_id, repo=repo_name),
-        build_uri_from_base(instance, instance.identifier, repo=repo_name),
-    ]
-
-
-def add_extra_uris(instance):
-    for u in build_extra_uris(instance):
-
-        try:
-            uri = URI.objects.get(uri=u)
-            instance.uris.add(uri)
-        except URI.DoesNotExist:
-            uri = URI(uri=u)
-            uri.save()
-            instance.uris.add(uri)
 
 
 @receiver(post_save, sender=Source)

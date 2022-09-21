@@ -436,11 +436,21 @@ def test_build_extra_uris(source):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_add_extra_uris(source):
+def test_add_extra_uris_to_source(source):
     add_extra_uris(source)
 
     assert {uri.uri for uri in source.uris.all()} == {
         "http://sources.com/source1",
         "http://sources.com/sourceSameAs",
         *build_extra_uris(source),
+    }
+
+
+@pytest.mark.django_db(transaction=True)
+def test_add_extra_uris_to_person(person):
+    add_extra_uris(person)
+
+    assert {uri.uri for uri in person.uris.all()} == {
+        "http://alternative.com/person1",
+        *build_extra_uris(person),
     }

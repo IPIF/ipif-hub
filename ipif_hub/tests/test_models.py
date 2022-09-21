@@ -102,6 +102,17 @@ def test_source_has_additional_uris_on_save(repo, source, factoid):
     }
 
 
+@pytest.mark.django_db(transaction=True)
+def test_person_has_additional_uris_on_save(repo, person, factoid):
+    assert person in Person.objects.all()
+
+    uris = {uri.uri for uri in person.uris.all()}
+    assert uris == {
+        "http://alternative.com/person1",
+        *build_extra_uris(person),
+    }
+
+
 """
 OK:
 
