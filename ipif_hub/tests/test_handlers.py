@@ -10,6 +10,7 @@ from ipif_hub.models import (
     MergeSource,
     Person,
     Source,
+    Statement,
     get_ipif_hub_repo_AUTOCREATED_instance,
 )
 from ipif_hub.signals.handlers import (
@@ -655,3 +656,33 @@ def test_add_extra_uris_to_person(person):
         "http://alternative.com/person1",
         *build_extra_uris(person),
     }
+
+
+@pytest.mark.django_db(transaction=True)
+def test_delete_person_used_as_related_person_creates_new_autocreated(repo):
+    related_real_person = Person(
+        local_id="related_real_person",
+        label="Related Real Person",
+        **created_modified,
+        ipif_repo=repo,
+    )
+    related_real_person.save()
+
+    statement: Statement = Statement(
+        local_id="statement1",
+        label="statement1",
+        **created_modified,
+        ipif_repo=repo,
+    )
+    statement.save()
+    statement.relatesToPerson.add(related_real_person)
+
+    # Check everything's connected up as we want
+    assert statement.relatesToPerson.first() == related_real_person
+
+    # Now delete the person, as if the request came from its owner
+    related_real_person.delete()
+
+    related_autocreated_person = statement.relatesToPerson.first()
+
+    assert related_autocreated_person
