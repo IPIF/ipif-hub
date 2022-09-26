@@ -53,7 +53,7 @@ def build_extra_uris(instance):
     repo_name = instance.ipif_repo.endpoint_slug
     if instance.ipif_repo == AUTOCREATED:
         # Autocreated persons don't need a load of extra identifiers
-        return instance.identifier
+        return [instance.identifier]
     return [
         instance.identifier,
         build_uri_from_base(instance, instance.identifier),

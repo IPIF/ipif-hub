@@ -587,6 +587,8 @@ def test_ingest_statement_with_related_person_has_uri_relation(repo, statement2_
 
     assert len(Person.objects.all()) == 2
 
+    print(Person.objects.all()[0].uris.all())
+    print({uri.uri for uri in Person.objects.all()[1].uris.all()})
     intersection = {uri.uri for uri in Person.objects.all()[0].uris.all()}.intersection(
         {uri.uri for uri in Person.objects.all()[1].uris.all()}
     )
