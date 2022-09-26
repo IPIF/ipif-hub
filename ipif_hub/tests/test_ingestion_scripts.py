@@ -14,11 +14,13 @@ from ipif_hub.management.utils.ingest_data import (
 from ipif_hub.models import (
     Factoid,
     IpifRepo,
+    MergePerson,
     Person,
     Source,
     Statement,
     get_ipif_hub_repo_AUTOCREATED_instance,
 )
+from ipif_hub.tests.conftest import created_modified
 
 
 @pytest.fixture
@@ -568,6 +570,27 @@ def statement2_data():
         ],
     }
     return data
+
+
+@pytest.mark.django_db(transaction=True)
+def test_ingest_statement_with_related_person_has_uri_relation(repo, statement2_data):
+    # AUTOCREATED = get_ipif_hub_repo_AUTOCREATED_instance()
+    ingest_statement(statement2_data, ipif_repo=repo)
+
+    p: Person = Person(
+        local_id="http://persons.com/mrsSpenceley",
+        label="Mrs Spenceley",
+        **created_modified,
+        ipif_repo=repo
+    )
+    p.save()
+
+    assert len(Person.objects.all()) == 2
+
+    intersection = {uri.uri for uri in Person.objects.all()[0].uris.all()}.intersection(
+        {uri.uri for uri in Person.objects.all()[1].uris.all()}
+    )
+    assert intersection
 
 
 @pytest.mark.django_db

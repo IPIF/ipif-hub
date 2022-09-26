@@ -51,6 +51,7 @@ def build_qualified_id(endpoint_uri, entity_type, id):
 
 
 def ingest_statement(data, ipif_repo):
+    ipif_hub_repo_AUTOCREATED = get_ipif_hub_repo_AUTOCREATED_instance()
 
     try:
         validate(data, schema=STATEMENT_SCHEMA)
@@ -126,6 +127,7 @@ def ingest_statement(data, ipif_repo):
                     try:
                         person = Person.objects.get(
                             id=person_to_set["uri"],
+                            ipif_repo=ipif_hub_repo_AUTOCREATED,
                         )  ### TODO: MODIFY TO LOOK FOR URIS WELL...NO!!
 
                     except Person.DoesNotExist:
@@ -133,7 +135,7 @@ def ingest_statement(data, ipif_repo):
                         person = Person(
                             identifier=person_to_set["uri"],
                             label=person_to_set["label"],
-                            local_id=person_to_set["uri"].split("/")[-1],
+                            local_id=person_to_set["uri"],
                             modifiedBy="IPIFHUB_AUTOCREATED",
                             modifiedWhen=datetime.date.today(),
                             createdBy="IPIFHUB_AUTOCREATED",
@@ -208,12 +210,13 @@ def ingest_statement(data, ipif_repo):
                 try:
                     person = Person.objects.get(
                         identifier=person_to_set["uri"],
-                    )  ### TODO: ADD on_delete hook to recreate if deleted by owner!
+                        ipif_repo=ipif_hub_repo_AUTOCREATED,
+                    )
                 except Person.DoesNotExist:
                     person = Person(
                         identifier=person_to_set["uri"],
                         label=person_to_set["label"],
-                        local_id=person_to_set["uri"].split("/")[-1],
+                        local_id=person_to_set["uri"],
                         modifiedBy="IPIFHUB_AUTOCREATED",
                         modifiedWhen=datetime.date.today(),
                         createdBy="IPIFHUB_AUTOCREATED",

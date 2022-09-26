@@ -2,7 +2,11 @@ import datetime
 
 import pytest
 
-from ipif_hub.models import MergePerson, MergeSource
+from ipif_hub.models import (
+    MergePerson,
+    MergeSource,
+    get_ipif_hub_repo_AUTOCREATED_instance,
+)
 from ipif_hub.serializers import (
     FactoidRefSerializer,
     FactoidSerializer,
@@ -174,7 +178,7 @@ def test_merge_person_serializer(
     person,
     person_sameAs,
 ):
-
+    AUTOCREATED = get_ipif_hub_repo_AUTOCREATED_instance()
     # TODO: It's really dumb that we're not really decoupling the automatic
     # creation of the object from testing the serializer
     assert len(MergePerson.objects.all()) == 1

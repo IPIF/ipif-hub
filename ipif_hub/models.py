@@ -110,6 +110,9 @@ class MergePerson(AbstractMergeEntity):
         uris = URI.objects.filter(persons__in=self.persons.all()).distinct()
         return uris
 
+    def __repr__(self):
+        return f'<MergePerson: [{", ".join(repr(person) for person in self.persons.all())}]>'
+
 
 class MergeSource(AbstractMergeEntity):
     sources = models.ManyToManyField(
