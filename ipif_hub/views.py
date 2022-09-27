@@ -39,9 +39,10 @@ class IpifRepoCreateView(View):
         form = IpifRepoForm(request.POST)
 
         if form.is_valid():
+            owners = form.cleaned_data.pop("owners")
             repo = IpifRepo(**form.cleaned_data)
             repo.save()
-            repo.owners.add(request.user)
+            repo.owners.add(request.user, *owners)
             repo.save()
             messages.add_message(
                 request, messages.INFO, f"IPIF repository {repo.endpoint_name} created."
