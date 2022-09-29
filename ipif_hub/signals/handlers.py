@@ -28,8 +28,6 @@ from ipif_hub.tasks import (
     update_statement_index,
 )
 
-AUTOCREATED = get_ipif_hub_repo_AUTOCREATED_instance()
-
 
 def build_uri_from_base(
     instance: Union[Person, Source],
@@ -50,6 +48,7 @@ def build_uri_from_base(
 
 
 def build_extra_uris(instance):
+    AUTOCREATED = get_ipif_hub_repo_AUTOCREATED_instance()
     repo_name = instance.ipif_repo.endpoint_slug
     if instance.ipif_repo == AUTOCREATED:
         # Autocreated persons don't need a load of extra identifiers
@@ -77,7 +76,7 @@ def add_extra_uris(instance):
 
 def handle_merge_person_from_person_update(new_person: Person):
     """Receives a Person object"""
-
+    AUTOCREATED = get_ipif_hub_repo_AUTOCREATED_instance()
     if new_person.ipif_repo == AUTOCREATED:
         return
 

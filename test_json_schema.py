@@ -1,6 +1,6 @@
 import json
-from jsonschema import validate
 
+from jsonschema import validate
 
 DEFAULT_FIELDS = {
     "@id": {"type": "string"},
@@ -113,7 +113,7 @@ FLAT_LIST_SCHEMA = {
 }
 
 
-with open("SAMPLE_DATA.json") as f:
+with open("VIECPRO.json") as f:
     data = f.read()
     data = json.loads(data)
 

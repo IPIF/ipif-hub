@@ -1,3 +1,6 @@
+from itertools import filterfalse
+
+from django.conf import settings
 from rest_framework import serializers
 
 from ipif_hub.models import (
@@ -32,6 +35,7 @@ class GenericRefSerializer:
     def to_representation(self, instance):
         data = super().to_representation(instance)
         id = data.pop("identifier", "")
+
         return {"@id": id, **data}
 
 
@@ -115,6 +119,7 @@ class PersonSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         id = data.pop("identifier", "no")
+
         label = data.pop("label", "")
         factoids = data.pop("factoids")
         uris = [v["uri"] for v in data.pop("uris")]
@@ -209,6 +214,9 @@ class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
         return return_dict
 
 
+from functools import cache
+
+
 class MergePersonSerializer(serializers.ModelSerializer):
     class Meta:
         model = MergePerson
@@ -217,10 +225,17 @@ class MergePersonSerializer(serializers.ModelSerializer):
     def to_representation(self, instance: MergePerson):
 
         data = super().to_representation(instance)
-        id = data.pop("id")
 
-        return_data = {"@id": id, **data}
-        return_data["uris"] = list(instance.uri_set)
+        uris = list(instance.uri_set)
+        chosen_uri = "http://merge_source.com"
+
+        for uri in uris:
+            if not uri.startswith(settings.IPIF_BASE_URI):
+                chosen_uri = uri
+                break
+
+        return_data = {"@id": chosen_uri, **data}
+        return_data["uris"] = uris
 
         return_data["factoid-refs"] = []
 
@@ -241,10 +256,16 @@ class MergeSourceSerializer(serializers.ModelSerializer):
     def to_representation(self, instance: MergeSource):
 
         data = super().to_representation(instance)
-        id = data.pop("id")
 
-        return_data = {"@id": id, **data}
-        return_data["uris"] = list(instance.uri_set)
+        uris = list(instance.uri_set)
+        chosen_uri = "http://merge_source.com"
+        for uri in uris:
+            if not uri.startswith(settings.IPIF_BASE_URI):
+                chosen_uri = uri
+                break
+
+        return_data = {"@id": chosen_uri, **data}
+        return_data["uris"] = uris
 
         return_data["factoid-refs"] = []
 

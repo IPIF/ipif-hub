@@ -22,8 +22,6 @@ from ipif_hub.models import (
     get_ipif_hub_repo_AUTOCREATED_instance,
 )
 
-ipif_hub_repo_AUTOCREATED = get_ipif_hub_repo_AUTOCREATED_instance()
-
 
 class DataFormatError(Exception):
     pass
@@ -78,7 +76,7 @@ def ingest_statement(data, ipif_repo):
 
         try:  # Now update the object
             statement.local_id = data["local_id"]
-            statement.label = data["label"]
+            statement.label = data.get("label", "")
             statement.createdBy = data["createdBy"]
             statement.createdWhen = data["createdWhen"]
             statement.modifiedBy = data["modifiedBy"]
@@ -166,7 +164,7 @@ def ingest_statement(data, ipif_repo):
         try:
             statement = Statement()
             statement.local_id = data["local_id"]
-            statement.label = data["label"]
+            statement.label = data.get("label", "")
             statement.createdBy = data["createdBy"]
             statement.createdWhen = data["createdWhen"]
             statement.modifiedBy = data["modifiedBy"]
@@ -234,7 +232,7 @@ def ingest_statement(data, ipif_repo):
 
 
 def ingest_person_or_source(entity_class, data, ipif_repo):
-    print("DATA", data)
+
     try:
         validate(data, schema=PERSON_SOURCE_SCHEMA)
     except Exception as e:
@@ -484,11 +482,13 @@ def ingest_data(endpoint_slug, data):
         ingest_sources(data["sources"], ipif_repo)
     except KeyError:
         raise DataFormatError("IPIF JSON is missing 'sources' field")
-
+    # print(data["statements"])
     try:
         ingest_statements(data["statements"], ipif_repo)
-    except KeyError:
-        raise DataFormatError("IPIF JSON is missing 'statements' field")
+    except KeyError as e:
+        print(e)
+        print("NO STATEMENTS")
+        # raise DataFormatError("IPIF JSON is missing 'statements' field")
 
     try:
         ingest_factoids(data["factoids"], ipif_repo)

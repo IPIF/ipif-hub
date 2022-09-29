@@ -658,3 +658,29 @@ def test_data_ingestion_function(
         "statements": [statement1_data],
     }
     ingest_data("testrepo", data)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_ingest_person_with_realworld_data(repo):
+    data = [
+        {
+            "@id": "1403",
+            "label": "Accerboni, Joseph Peter, None (1403)",
+            "createdBy": "apis_viecpro",
+            "createdWhen": "2022-09-28",
+            "modifiedBy": "apis_viecpro",
+            "modifiedWhen": "2022-09-28",
+            "uris": ["https://mpr.acdh.oeaw.ac.at/apis/api2/entity/1403/"],
+        },
+        {
+            "@id": "1404",
+            "label": "Ackermann, Franz, None (1404)",
+            "createdBy": "sennierer",
+            "createdWhen": "2019-07-01",
+            "modifiedBy": "sennierer",
+            "modifiedWhen": "2019-07-01",
+            "uris": ["https://mpr.acdh.oeaw.ac.at/apis/api2/entity/1404/"],
+        },
+    ]
+    for person in data:
+        ingest_person_or_source(Person, person, repo)
