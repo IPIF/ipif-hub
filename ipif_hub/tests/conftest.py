@@ -34,7 +34,7 @@ def _setup():
     ):
         call_command("clear_index", interactive=False, verbosity=0)
         yield
-        call_command("clear_index", interactive=False, verbosity=0)
+        # call_command("clear_index", interactive=False, verbosity=0)
 
 
 test_repo_no_slug = {

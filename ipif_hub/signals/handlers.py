@@ -29,6 +29,36 @@ from ipif_hub.tasks import (
 )
 
 
+class CeleryCallBundle:
+    def __init__(self, task, model_name) -> None:
+        self.task = task
+        self.pks = set()
+        self.model_name = model_name
+
+    already_called = False
+
+    def add(self, pk):
+        self.pks.add(pk)
+
+    def call(self):
+
+        if not self.already_called:
+            self.already_called = True
+            for pk in self.pks:
+                print(f"Creating index task for <{self.model_name} pk={pk}>")
+                self.task.delay(pk)
+            self.already_called = False
+            self.pks = set()
+
+
+statementCallBundle = CeleryCallBundle(update_statement_index, "Statement")
+sourceCallBundle = CeleryCallBundle(update_source_index, "Source")
+personCallBundle = CeleryCallBundle(update_person_index, "Person")
+factoidCallBundle = CeleryCallBundle(update_factoid_index, "Factoid")
+mergePersonCallBundle = CeleryCallBundle(update_merge_person_index, "MergePerson")
+mergeSourceCallBundle = CeleryCallBundle(update_merge_source_index, "MergeSource")
+
+
 def build_uri_from_base(
     instance: Union[Person, Source],
     identifier: str,
@@ -62,19 +92,21 @@ def build_extra_uris(instance):
 
 
 def add_extra_uris(instance):
-
+    uris_to_add = []
     for u in build_extra_uris(instance):
 
         try:
             uri = URI.objects.get(uri=u)
-            instance.uris.add(uri)
+            uris_to_add.append(uri)
         except URI.DoesNotExist:
             uri = URI(uri=u)
             uri.save()
-            instance.uris.add(uri)
+            uris_to_add.append(uri)
+    print("Adding uris", uris_to_add, "to person", instance)
+    instance.uris.add(*uris_to_add)
 
 
-def handle_merge_person_from_person_update(new_person: Person):
+def handle_merge_person_from_person_update(new_person: Person, called_from=None):
     """Receives a Person object"""
     AUTOCREATED = get_ipif_hub_repo_AUTOCREATED_instance()
     if new_person.ipif_repo == AUTOCREATED:
@@ -82,9 +114,14 @@ def handle_merge_person_from_person_update(new_person: Person):
 
     matching_merge_persons = MergePerson.objects.filter(
         Q(persons__uris__in=new_person.uris.all())
-    )
+    ).distinct()
     if not matching_merge_persons:
-        # Create new
+        print(
+            "No MP: Creating new MergePerson from person",
+            new_person.pk,
+            "called from:",
+            called_from,
+        )
         merge_person = MergePerson(
             createdBy="ipif-hub",
             createdWhen=datetime.date.today(),
@@ -95,10 +132,23 @@ def handle_merge_person_from_person_update(new_person: Person):
         merge_person.persons.add(new_person)
 
     elif len(matching_merge_persons) == 1:
+        print(
+            "One MP: while adding/modifying person",
+            new_person.pk,
+            "called from:",
+            called_from,
+        )
         merge_person = matching_merge_persons.first()
-        merge_person.persons.add(new_person)
+        if new_person not in merge_person.persons.all():
+            merge_person.persons.add(new_person)
 
     elif len(matching_merge_persons) > 1:
+        print(
+            "More than one MP: person",
+            new_person.pk,
+            "called from:",
+            called_from,
+        )
         all_persons = []
         for merge_person in matching_merge_persons:
             all_persons = [*all_persons, *merge_person.persons.all()]
@@ -184,7 +234,7 @@ def handle_merge_source_from_source_update(new_source):
 
     matching_merge_sources = MergeSource.objects.filter(
         sources__uris__in=new_source.uris.all()
-    )
+    ).distinct()
     if not matching_merge_sources:
         # Create new
         merge_source = MergeSource(
@@ -198,7 +248,8 @@ def handle_merge_source_from_source_update(new_source):
 
     elif len(matching_merge_sources) == 1:
         merge_source = matching_merge_sources.first()
-        merge_source.sources.add(new_source)
+        if new_source not in merge_source.sources.all():
+            merge_source.sources.add(new_source)
 
     elif len(matching_merge_sources) > 1:
         all_sources = []
@@ -246,36 +297,9 @@ def handle_delete_source_updating_merge_sources(source_to_delete: Source) -> Non
     old_merge_source.delete()
 
 
-class CeleryCallBundle:
-    def __init__(self, task) -> None:
-        self.task = task
-        self.pks = set()
-
-    already_called = False
-
-    def add(self, pk):
-        self.pks.add(pk)
-
-    def call(self):
-        print("CALLED")
-        if not self.already_called:
-            self.already_called = True
-            for pk in self.pks:
-                self.task.delay(pk)
-            self.already_called = False
-            self.pks = set()
-
-
-statementCallBundle = CeleryCallBundle(update_statement_index)
-sourceCallBundle = CeleryCallBundle(update_source_index)
-personCallBundle = CeleryCallBundle(update_person_index)
-factoidCallBundle = CeleryCallBundle(update_factoid_index)
-mergePersonCallBundle = CeleryCallBundle(update_merge_person_index)
-mergeSourceCallBundle = CeleryCallBundle(update_merge_source_index)
-
-
 @receiver(m2m_changed, sender=MergePerson.persons.through)
 def merge_person_m2m_changed(sender, instance, **kwargs):
+    print("MergePersonM2M changed", instance.pk)
     mergePersonCallBundle.add(instance.pk)
     transaction.on_commit(mergePersonCallBundle.call)
 
@@ -304,7 +328,7 @@ def factoid_post_save(sender, instance, **kwargs):
 def person_post_save(sender, instance: Person, **kwargs):
     # handle_merge_person_from_person_update(instance)
     add_extra_uris(instance)
-    handle_merge_person_from_person_update(instance)
+    # handle_merge_person_from_person_update(instance)
 
     personCallBundle.add(instance.pk)
     transaction.on_commit(personCallBundle.call)
@@ -358,9 +382,10 @@ def person_m2m_changed(sender, instance, **kwargs):
     any merge-persons. So, we run the merge_uri_sets to check whether there is more
     than one set: if so, delete the original merge_person and create new ones; otherwise, it's fine."""
     if kwargs["action"] == "post_remove":
+        print("--DELETING URI")
         split_merge_person_on_uri_delete(instance, kwargs)
 
-    handle_merge_person_from_person_update(instance)
+    handle_merge_person_from_person_update(instance, "person_m2m_changed")
 
     personCallBundle.add(instance.pk)
     transaction.on_commit(personCallBundle.call)
@@ -376,7 +401,7 @@ def person_pre_delete(sender, instance, **kwargs):
 def source_post_save(sender, instance: Source, **kwargs):
     add_extra_uris(instance)
 
-    handle_merge_source_from_source_update(instance)
+    # handle_merge_source_from_source_update(instance)
 
     sourceCallBundle.add(instance.pk)
     transaction.on_commit(sourceCallBundle.call)

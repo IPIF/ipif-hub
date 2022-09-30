@@ -62,7 +62,7 @@ def update_factoid_index(instance_pk):
             person_search.searchindex.update_object(person)
 
         if merge_person := person.merge_person.first():
-            update_merge_person_index(merge_person.pk)
+            update_merge_person_index.delay(merge_person.pk)
 
         source = Factoid.objects.get(pk=instance_pk).source
         source_searches = SourceIndex.objects.filter(django_id=source.pk)
@@ -70,7 +70,7 @@ def update_factoid_index(instance_pk):
             source_search.searchindex.update_object(source)
 
         if merge_source := source.merge_source.first():
-            update_merge_source_index(merge_source.pk)
+            update_merge_source_index.delay(merge_source.pk)
 
         statements = Factoid.objects.get(pk=instance_pk).statements.all()
         for statement in statements:
