@@ -246,10 +246,38 @@ def handle_delete_source_updating_merge_sources(source_to_delete: Source) -> Non
     old_merge_source.delete()
 
 
+class CeleryCallBundle:
+    def __init__(self, task) -> None:
+        self.task = task
+        self.pks = set()
+
+    already_called = False
+
+    def add(self, pk):
+        self.pks.add(pk)
+
+    def call(self):
+        print("CALLED")
+        if not self.already_called:
+            self.already_called = True
+            for pk in self.pks:
+                self.task.delay(pk)
+            self.already_called = False
+            self.pks = set()
+
+
+statementCallBundle = CeleryCallBundle(update_statement_index)
+sourceCallBundle = CeleryCallBundle(update_source_index)
+personCallBundle = CeleryCallBundle(update_person_index)
+factoidCallBundle = CeleryCallBundle(update_factoid_index)
+mergePersonCallBundle = CeleryCallBundle(update_merge_person_index)
+mergeSourceCallBundle = CeleryCallBundle(update_merge_source_index)
+
+
 @receiver(m2m_changed, sender=MergePerson.persons.through)
 def merge_person_m2m_changed(sender, instance, **kwargs):
-
-    transaction.on_commit(lambda: update_merge_person_index(instance.pk))
+    mergePersonCallBundle.add(instance.pk)
+    transaction.on_commit(mergePersonCallBundle.call)
 
 
 # Off the top of my head, it should not be necessary to index
@@ -262,24 +290,24 @@ def index(sender, instance, **kwargs):
 
 @receiver(m2m_changed, sender=MergeSource.sources.through)
 def merge_source_m2m_changed(sender, instance, **kwargs):
-    # print("MP_m2mchanged SOURCE CALLED")
-    transaction.on_commit(lambda: update_merge_source_index(instance.pk))
+    mergeSourceCallBundle.add(instance.pk)
+    transaction.on_commit(mergeSourceCallBundle.call)
 
 
 @receiver(post_save, sender=Factoid)
 def factoid_post_save(sender, instance, **kwargs):
-
-    transaction.on_commit(lambda: update_factoid_index.delay(instance.pk))
+    factoidCallBundle.add(instance.pk)
+    transaction.on_commit(factoidCallBundle.call)
 
 
 @receiver(post_save, sender=Person)
 def person_post_save(sender, instance: Person, **kwargs):
     # handle_merge_person_from_person_update(instance)
-
     add_extra_uris(instance)
-
     handle_merge_person_from_person_update(instance)
-    transaction.on_commit(lambda: update_person_index.delay(instance.pk))
+
+    personCallBundle.add(instance.pk)
+    transaction.on_commit(personCallBundle.call)
 
 
 def split_merge_person_on_uri_delete(instance, kwargs):
@@ -333,7 +361,9 @@ def person_m2m_changed(sender, instance, **kwargs):
         split_merge_person_on_uri_delete(instance, kwargs)
 
     handle_merge_person_from_person_update(instance)
-    transaction.on_commit(lambda: update_person_index.delay(instance.pk))
+
+    personCallBundle.add(instance.pk)
+    transaction.on_commit(personCallBundle.call)
 
 
 @receiver(pre_delete, sender=Person)
@@ -347,7 +377,9 @@ def source_post_save(sender, instance: Source, **kwargs):
     add_extra_uris(instance)
 
     handle_merge_source_from_source_update(instance)
-    transaction.on_commit(lambda: update_source_index.delay(instance.pk))
+
+    sourceCallBundle.add(instance.pk)
+    transaction.on_commit(sourceCallBundle.call)
 
 
 @receiver(m2m_changed, sender=Source.uris.through)
@@ -356,7 +388,8 @@ def source_m2m_changed(sender, instance, **kwargs):
         split_merge_source_on_uri_delete(instance, kwargs)
 
     handle_merge_source_from_source_update(instance)
-    transaction.on_commit(lambda: update_source_index.delay(instance.pk))
+    sourceCallBundle.add(instance.pk)
+    transaction.on_commit(sourceCallBundle.call)
 
 
 @receiver(pre_delete, sender=Source)
@@ -367,4 +400,6 @@ def source_pre_delete(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Statement)
 def statement_post_save(sender, instance, **kwargs):
-    transaction.on_commit(lambda: update_statement_index.delay(instance.pk))
+
+    statementCallBundle.add(instance.pk)
+    transaction.on_commit(statementCallBundle.call)

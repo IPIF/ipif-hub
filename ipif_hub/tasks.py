@@ -27,7 +27,7 @@ from ipif_hub.search_indexes import (
 logger = get_task_logger(__name__)
 
 
-@shared_task
+@shared_task(ignore_result=True)
 def update_merge_person_index(instance_pk):
     merge_person_searches = MergePersonIndex.objects.filter(django_id=instance_pk)
     for merge_person_search in merge_person_searches:
@@ -36,7 +36,7 @@ def update_merge_person_index(instance_pk):
         )
 
 
-@shared_task
+@shared_task(ignore_result=True)
 def update_merge_source_index(instance_pk):
     merge_source_searches = MergeSourceIndex.objects.filter(django_id=instance_pk)
     for merge_source_search in merge_source_searches:
@@ -45,39 +45,43 @@ def update_merge_source_index(instance_pk):
         )
 
 
-@shared_task
+@shared_task(ignore_result=True)
 def update_factoid_index(instance_pk):
+    try:
 
-    logger.debug(msg=instance_pk)
-    factoid_searches = FactoidIndex.objects.filter(django_id=instance_pk)
-    for factoid_search in factoid_searches:
-        factoid_search.searchindex.update_object(Factoid.objects.get(pk=instance_pk))
+        factoid_searches = FactoidIndex.objects.filter(django_id=instance_pk)
+        for factoid_search in factoid_searches:
+            factoid_search.searchindex.update_object(
+                Factoid.objects.get(pk=instance_pk)
+            )
 
-    person = Factoid.objects.get(pk=instance_pk).person
+        person = Factoid.objects.get(pk=instance_pk).person
 
-    person_searches = PersonIndex.objects.filter(django_id=person.pk)
-    for person_search in person_searches:
-        person_search.searchindex.update_object(person)
+        person_searches = PersonIndex.objects.filter(django_id=person.pk)
+        for person_search in person_searches:
+            person_search.searchindex.update_object(person)
 
-    if merge_person := person.merge_person.first():
-        update_merge_person_index(merge_person.pk)
+        if merge_person := person.merge_person.first():
+            update_merge_person_index(merge_person.pk)
 
-    source = Factoid.objects.get(pk=instance_pk).source
-    source_searches = SourceIndex.objects.filter(django_id=source.pk)
-    for source_search in source_searches:
-        source_search.searchindex.update_object(source)
+        source = Factoid.objects.get(pk=instance_pk).source
+        source_searches = SourceIndex.objects.filter(django_id=source.pk)
+        for source_search in source_searches:
+            source_search.searchindex.update_object(source)
 
-    if merge_source := source.merge_source.first():
-        update_merge_source_index(merge_source.pk)
+        if merge_source := source.merge_source.first():
+            update_merge_source_index(merge_source.pk)
 
-    statements = Factoid.objects.get(pk=instance_pk).statements.all()
-    for statement in statements:
-        statement_searches = StatementIndex.objects.filter(django_id=statement.pk)
-        for statement_search in statement_searches:
-            statement_search.searchindex.update_object(statement)
+        statements = Factoid.objects.get(pk=instance_pk).statements.all()
+        for statement in statements:
+            statement_searches = StatementIndex.objects.filter(django_id=statement.pk)
+            for statement_search in statement_searches:
+                statement_search.searchindex.update_object(statement)
+    except Factoid.DoesNotExist:
+        pass
 
 
-@shared_task
+@shared_task(ignore_result=True)
 def update_person_index(instance_pk):
 
     person = Person.objects.get(pk=instance_pk)
@@ -89,7 +93,7 @@ def update_person_index(instance_pk):
     #    update_merge_person_index(merge_person.pk)
 
 
-@shared_task
+@shared_task(ignore_result=True)
 def update_source_index(instance_pk):
     source = Source.objects.get(pk=instance_pk)
 
@@ -97,7 +101,7 @@ def update_source_index(instance_pk):
         update_factoid_index.delay(factoid.pk)
 
 
-@shared_task
+@shared_task(ignore_result=True)
 def update_statement_index(instance_pk):
 
     statement = Statement.objects.get(pk=instance_pk)
@@ -120,7 +124,7 @@ class Capturing(list):
         sys.stdout = self._stdout
 
 
-@shared_task
+@shared_task(ignore_result=True)
 def ingest_json_data_task(repo_id, data, job_id=None):
     logger.info("ingesting data")
     job = IngestionJob.objects.get(pk=job_id)
