@@ -225,7 +225,7 @@ class MergePersonSerializer(serializers.ModelSerializer):
     def to_representation(self, instance: MergePerson):
 
         data = super().to_representation(instance)
-
+        _ = data.pop("id")
         uris = list(instance.uri_set)
         chosen_uri = "http://merge_source.com"
 
@@ -256,7 +256,7 @@ class MergeSourceSerializer(serializers.ModelSerializer):
     def to_representation(self, instance: MergeSource):
 
         data = super().to_representation(instance)
-
+        _ = data.pop("id")
         uris = list(instance.uri_set)
         chosen_uri = "http://merge_source.com"
         for uri in uris:

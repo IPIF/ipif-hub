@@ -35,14 +35,20 @@ mergeSourceIndex = MergeSourceIndex()
 
 @shared_task(ignore_result=True)
 def update_merge_person_index(instance_pk):
-    merge_person = MergePerson.objects.get(pk=instance_pk)
-    mergePersonIndex.update_object(merge_person)
+    try:
+        merge_person = MergePerson.objects.get(pk=instance_pk)
+        mergePersonIndex.update_object(merge_person)
+    except MergePerson.DoesNotExist:
+        pass
 
 
 @shared_task(ignore_result=True)
 def update_merge_source_index(instance_pk):
-    merge_source = MergeSource.objects.get(pk=instance_pk)
-    mergeSourceIndex.update_object(merge_source)
+    try:
+        merge_source = MergeSource.objects.get(pk=instance_pk)
+        mergeSourceIndex.update_object(merge_source)
+    except MergeSource.DoesNotExist:
+        pass
 
 
 @shared_task(ignore_result=True)
@@ -74,11 +80,7 @@ def update_factoid_index(instance_pk):
 
 @shared_task(ignore_result=True)
 def update_person_index(instance_pk):
-
-    person = Person.objects.get(pk=instance_pk)
-
-    for factoid in person.factoids.all():
-        update_factoid_index.delay(factoid.pk)
+    personIndex.update_object(Person.objects.get(pk=instance_pk))
 
     # if merge_person := person.merge_person.first():
     #    update_merge_person_index(merge_person.pk)
@@ -86,19 +88,12 @@ def update_person_index(instance_pk):
 
 @shared_task(ignore_result=True)
 def update_source_index(instance_pk):
-    source = Source.objects.get(pk=instance_pk)
-
-    for factoid in source.factoids.all():
-        update_factoid_index.delay(factoid.pk)
+    sourceIndex.update_object(Source.objects.get(pk=instance_pk))
 
 
 @shared_task(ignore_result=True)
 def update_statement_index(instance_pk):
-
-    statement = Statement.objects.get(pk=instance_pk)
-
-    for factoid in statement.factoids.all():
-        update_factoid_index.delay(factoid.pk)
+    statementIndex.update_object(Statement.objects.get(pk=instance_pk))
 
 
 class Capturing(list):

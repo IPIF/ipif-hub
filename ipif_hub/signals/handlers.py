@@ -34,44 +34,102 @@ from ipif_hub.tasks import (
 
 
 class CeleryCallBundle:
-    def __init__(self) -> None:
-        self.pks = set()
+    """Class to bundle together calls to update indexes and call them *once*
+    (by using self.already_called flag) after the transaction has completed.
 
-    already_called = False
+    - Add relevant type with CeleryCallBundle.add_*()
+    - To be called inside a transaction.on_commit from a signal
+
+    """
+
+    def __init__(self) -> None:
+        self._reset()
+
+    def _reset(self):
+        self.factoid_pks_to_index = set()
+
+        self.already_called = False
+
+        self.sources = set()
+        self.persons = set()
+        self.statements = set()
+        self.merge_persons = set()
+        self.merge_sources = set()
 
     def add_factoid(self, factoid: Factoid):
-        self.pks.add(factoid.pk)
+        self.factoid_pks_to_index.add(factoid.pk)
 
     def add_source(self, source: Source):
-        for factoid in source.factoids.all():
-            self.pks.add(factoid.pk)
+        self.sources.add(source)
 
     def add_person(self, person: Person):
-        for factoid in person.factoids.all():
-            self.pks.add(factoid.pk)
+        self.persons.add(person)
 
     def add_statement(self, statement: Statement):
-        for factoid in statement.factoids.all():
-            self.pks.add(factoid.pk)
+        self.statements.add(statement)
 
     def add_merge_person(self, merge_person: MergePerson):
-        # print("adding MP to index refresh")
-        for person in merge_person.persons.all():
-            print("adding merge person", merge_person, person)
-            self.add_person(person)
+        self.merge_persons.add(merge_person)
 
     def add_merge_source(self, merge_source: MergeSource):
-        for source in merge_source.sources.all():
-            self.add_source(source)
+        self.merge_sources.add(merge_source)
+
+    def _add_factoids_from_entity_set(self, entity_set):
+        entity_set_copy = set(entity_set)
+        for entity in entity_set_copy:
+            if factoids := entity.factoids.all():
+                for factoid in factoids:
+                    self.factoid_pks_to_index.add(factoid.pk)
+                entity_set.remove(entity)
+
+    def _update_factoids_to_index(self):
+        self._add_factoids_from_entity_set(self.persons)
+        self._add_factoids_from_entity_set(self.sources)
+        self._add_factoids_from_entity_set(self.statements)
+
+        merge_persons_copy = set(self.merge_persons)
+        for merge_person in merge_persons_copy:
+            if factoids := Factoid.objects.filter(person__merge_person=merge_person):
+                for factoid in factoids:
+                    self.factoid_pks_to_index.add(factoid.pk)
+                self.merge_persons.remove(merge_person)
+
+        merge_sources_copy = set(self.merge_sources)
+        for merge_source in merge_sources_copy:
+            if factoids := Factoid.objects.filter(source__merge_source=merge_source):
+                for factoid in factoids:
+                    self.factoid_pks_to_index.add(factoid.pk)
+                self.merge_sources.remove(merge_source)
 
     def call(self):
         if not self.already_called:
             self.already_called = True
-            for pk in self.pks:
+            self._update_factoids_to_index()
+            for pk in self.factoid_pks_to_index:
                 print(f"Creating index task for <Factoid pk={pk}>")
                 update_factoid_index.delay(pk)
-            self.already_called = False
-            self.pks = set()
+
+            for source in self.sources:
+                print(f"Creating index task for <Source pk={source.pk}>")
+                update_source_index.delay(source.pk)
+
+            for person in self.persons:
+                print(f"Creating index task for <Person pk={person.pk}>")
+                update_person_index.delay(person.pk)
+
+            for statement in self.statements:
+                print(f"Creating index task for <Statement pk={statement.pk}>")
+                update_statement_index.delay(statement.pk)
+
+            for merge_person in self.merge_persons:
+                print(f"Creating index task for <MergePerson pk={merge_person.pk}>")
+                update_merge_person_index(merge_person.pk)
+
+            for merge_source in self.merge_sources:
+                print(f"Creating index task for <MergeSource pk={merge_source.pk}>")
+                update_merge_source_index(merge_source.pk)
+
+            self._reset()
 
 
 celeryCallBundle = CeleryCallBundle()

@@ -14,9 +14,7 @@ def test_entity_is_in_haystack(repo):
     with transaction.atomic():
         p = Person(local_id="person1", ipif_repo=repo, **created_modified)
         p.save()
-    import time
 
-    time.sleep(5)
     pi = PersonIndex.objects.filter(identifier="http://test.com/persons/person1")[0]
     assert pi.identifier == p.identifier
 

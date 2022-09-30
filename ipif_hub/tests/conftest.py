@@ -2,6 +2,7 @@ import datetime
 
 import pytest
 from django.core.management import call_command
+from django.db import transaction
 from django.db.models.signals import (
     m2m_changed,
     post_delete,
@@ -138,73 +139,81 @@ def uriNotSameAs():
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def person(repo, alt_uri) -> Person:
-    p = Person(
-        local_id="person1", label="Person One", ipif_repo=repo, **created_modified
-    )
-    p.save()
+    with transaction.atomic():
+        p = Person(
+            local_id="person1", label="Person One", ipif_repo=repo, **created_modified
+        )
+        p.save()
 
-    p.uris.add(alt_uri)
-    p.save()
+        p.uris.add(alt_uri)
+        p.save()
     return p
 
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def person_sameAs(repo2, alt_uri):
-    p = Person(
-        local_id="person_sameAs",
-        label="Person SameAs",
-        ipif_repo=repo2,
-        **created_modified,
-    )
-    p.save()
-    p.uris.add(alt_uri)
-    p.save()
+    with transaction.atomic():
+        p = Person(
+            local_id="person_sameAs",
+            label="Person SameAs",
+            ipif_repo=repo2,
+            **created_modified,
+        )
+        p.save()
+        p.uris.add(alt_uri)
+        p.save()
     return p
 
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def person_no_uri(repo):
-    p: Person = Person(
-        local_id="person_no_uri",
-        label="person no uri",
-        ipif_repo=repo,
-        **created_modified,
-    )
-    p.save()
+    with transaction.atomic():
+
+        p: Person = Person(
+            local_id="person_no_uri",
+            label="person no uri",
+            ipif_repo=repo,
+            **created_modified,
+        )
+        p.save()
     return p
 
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def person2(repo, alt_uri):
-    p = Person(
-        local_id="person2", label="Person Two", ipif_repo=repo, **created_modified
-    )
-    p.save()
-    p.uris.add(alt_uri)
-    p.save()
+    with transaction.atomic():
+
+        p = Person(
+            local_id="person2", label="Person Two", ipif_repo=repo, **created_modified
+        )
+        p.save()
+        p.uris.add(alt_uri)
+        p.save()
     return p
 
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def personNotSameAs(repo, uriNotSameAs):
-    p = Person(
-        local_id="personNotSameAs",
-        label="Person NotSameAs",
-        ipif_repo=repo,
-        **created_modified,
-    )
-    p.save()
-    p.uris.add(uriNotSameAs)
+    with transaction.atomic():
+        p = Person(
+            local_id="personNotSameAs",
+            label="Person NotSameAs",
+            ipif_repo=repo,
+            **created_modified,
+        )
+        p.save()
+        p.uris.add(uriNotSameAs)
     return p
 
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def sourceSameAsURI():
+
     uri = URI(uri="http://sources.com/sourceSameAs")
     uri.save()
     return uri
@@ -213,31 +222,33 @@ def sourceSameAsURI():
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def source(repo, sourceSameAsURI):
-    s: Source = Source(
-        local_id="source1", label="Source One", ipif_repo=repo, **created_modified
-    )
-    s.save()
+    with transaction.atomic():
+        s: Source = Source(
+            local_id="source1", label="Source One", ipif_repo=repo, **created_modified
+        )
+        s.save()
 
-    uri = URI(uri="http://sources.com/source1")
-    uri.save()
-    s.uris.add(uri)
+        uri = URI(uri="http://sources.com/source1")
+        uri.save()
+        s.uris.add(uri)
 
-    s.uris.add(sourceSameAsURI)
+        s.uris.add(sourceSameAsURI)
     return s
 
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def sourceSameAs(repo, sourceSameAsURI):
-    s = Source(
-        local_id="sourceSameAs",
-        label="Source SameAs",
-        ipif_repo=repo,
-        **created_modified,
-    )
-    s.save()
+    with transaction.atomic():
+        s = Source(
+            local_id="sourceSameAs",
+            label="Source SameAs",
+            ipif_repo=repo,
+            **created_modified,
+        )
+        s.save()
 
-    s.uris.add(sourceSameAsURI)
+        s.uris.add(sourceSameAsURI)
 
     return s
 
@@ -245,153 +256,161 @@ def sourceSameAs(repo, sourceSameAsURI):
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def sourceNotSameAs(repo):
-    s = Source(
-        local_id="sourceNotSameAs",
-        label="Source NotSameAs",
-        ipif_repo=repo,
-        **created_modified,
-    )
-    s.save()
-    uri = URI(uri="http://notsamesource.com/")
-    uri.save()
-    s.uris.add(uri)
+    with transaction.atomic():
+        s = Source(
+            local_id="sourceNotSameAs",
+            label="Source NotSameAs",
+            ipif_repo=repo,
+            **created_modified,
+        )
+        s.save()
+        uri = URI(uri="http://notsamesource.com/")
+        uri.save()
+        s.uris.add(uri)
     return s
 
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def statement(repo):
-    related_person = Person(
-        local_id="http://related.com/person1",
-        label="Related Person",
-        ipif_repo=get_ipif_hub_repo_AUTOCREATED_instance(),
-        **created_modified,
-    )
-    related_person.save()
+    with transaction.atomic():
+        related_person = Person(
+            local_id="http://related.com/person1",
+            label="Related Person",
+            ipif_repo=get_ipif_hub_repo_AUTOCREATED_instance(),
+            **created_modified,
+        )
+        related_person.save()
 
-    place = Place(label="Nowhere", uri="http://places.com/nowhere")
-    place.save()
+        place = Place(label="Nowhere", uri="http://places.com/nowhere")
+        place.save()
 
-    st = Statement(
-        local_id="statement1",
-        label="Statement One",
-        ipif_repo=repo,
-        **created_modified,
-        statementType_uri="http://all_purpose_statement.com",
-        statementType_label="All Purpose Statement",
-        name="John Smith",
-        role_uri="http://role.com/unemployed",
-        role_label="unemployed",
-        date_sortdate=datetime.date(1900, 1, 1),
-        date_label="1 Jan 1900",
-        memberOf_uri="http://orgs.com/madeup",
-        memberOf_label="Made Up Organisation",
-        statementText="John Smith is a Member of Madeup",
-    )
-    st.save()
-    st.relatesToPerson.add(related_person)
-    st.places.add(place)
-    st.save()
+        st = Statement(
+            local_id="statement1",
+            label="Statement One",
+            ipif_repo=repo,
+            **created_modified,
+            statementType_uri="http://all_purpose_statement.com",
+            statementType_label="All Purpose Statement",
+            name="John Smith",
+            role_uri="http://role.com/unemployed",
+            role_label="unemployed",
+            date_sortdate=datetime.date(1900, 1, 1),
+            date_label="1 Jan 1900",
+            memberOf_uri="http://orgs.com/madeup",
+            memberOf_label="Made Up Organisation",
+            statementText="John Smith is a Member of Madeup",
+        )
+        st.save()
+        st.relatesToPerson.add(related_person)
+        st.places.add(place)
+        st.save()
     return st
 
 
 @pytest.fixture()
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def statement2(repo):
-    st = Statement(
-        local_id="statement2",
-        label="Statement Two",
-        ipif_repo=repo,
-        **created_modified,
-        statementType_uri="http://namingStatement",
-        statementType_label="naming",
-        name="Johannes Schmitt",
-    )
+    with transaction.atomic():
+        st = Statement(
+            local_id="statement2",
+            label="Statement Two",
+            ipif_repo=repo,
+            **created_modified,
+            statementType_uri="http://namingStatement",
+            statementType_label="naming",
+            name="Johannes Schmitt",
+        )
 
-    st.save()
+        st.save()
     return st
 
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def factoid(repo, person, source, statement):
-    f = Factoid(
-        local_id="factoid1",
-        label="Factoid One",
-        ipif_repo=repo,
-        **created_modified,
-    )
-    f.person = person
-    f.source = source
-    f.save()
-    f.statements.add(statement)
-    f.save()
+    with transaction.atomic():
+        f = Factoid(
+            local_id="factoid1",
+            label="Factoid One",
+            ipif_repo=repo,
+            **created_modified,
+        )
+        f.person = person
+        f.source = source
+        f.save()
+        f.statements.add(statement)
+        f.save()
     return f
 
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def factoid2(repo, person, source, statement2):
-    f = Factoid(
-        local_id="factoid2",
-        label="Factoid Two",
-        ipif_repo=repo,
-        **created_modified,
-    )
-    f.person = person
-    f.source = source
-    f.save()
-    f.statements.add(statement2)
-    f.save()
+    with transaction.atomic():
+        f = Factoid(
+            local_id="factoid2",
+            label="Factoid Two",
+            ipif_repo=repo,
+            **created_modified,
+        )
+        f.person = person
+        f.source = source
+        f.save()
+        f.statements.add(statement2)
+        f.save()
     return f
 
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def factoid3(repo, person_sameAs, source, statement2):
-    f = Factoid(
-        local_id="factoid3",
-        label="Factoid Three",
-        ipif_repo=repo,
-        **created_modified,
-    )
-    f.person = person_sameAs
-    f.source = source
-    f.save()
-    f.statements.add(statement2)
-    f.save()
+    with transaction.atomic():
+        f = Factoid(
+            local_id="factoid3",
+            label="Factoid Three",
+            ipif_repo=repo,
+            **created_modified,
+        )
+        f.person = person_sameAs
+        f.source = source
+        f.save()
+        f.statements.add(statement2)
+        f.save()
     return f
 
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def factoid4(repo, personNotSameAs, source, statement2):
-    f = Factoid(
-        local_id="factoid4",
-        label="Factoid Four",
-        ipif_repo=repo,
-        **created_modified,
-    )
-    f.person = personNotSameAs
-    f.source = source
-    f.save()
-    f.statements.add(statement2)
-    f.save()
+    with transaction.atomic():
+        f = Factoid(
+            local_id="factoid4",
+            label="Factoid Four",
+            ipif_repo=repo,
+            **created_modified,
+        )
+        f.person = personNotSameAs
+        f.source = source
+        f.save()
+        f.statements.add(statement2)
+        f.save()
     return f
 
 
 @pytest.fixture()
 @pytest.mark.django_db(transaction=True)
 def factoid_person_no_uri(repo, person_no_uri, source, statement2):
-    f = Factoid(
-        local_id="factoid_person_no_uri",
-        label="Factoid Four",
-        ipif_repo=repo,
-        **created_modified,
-    )
-    f.person = person_no_uri
-    f.source = source
-    f.save()
-    f.statements.add(statement2)
-    f.save()
+    with transaction.atomic():
+        f = Factoid(
+            local_id="factoid_person_no_uri",
+            label="Factoid Four",
+            ipif_repo=repo,
+            **created_modified,
+        )
+        f.person = person_no_uri
+        f.source = source
+        f.save()
+        f.statements.add(statement2)
+        f.save()
     return f

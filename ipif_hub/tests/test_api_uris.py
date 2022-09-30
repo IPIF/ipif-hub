@@ -1,4 +1,5 @@
 import pytest
+from django.db import transaction
 from rest_framework.test import APIClient
 
 from ipif_hub.serializers import (
@@ -23,6 +24,7 @@ def test_request_for_persons(person, factoid):
 
 @pytest.mark.django_db(transaction=True)
 def test_request_for_specific_persons(person, factoid):
+
     client = APIClient()
     response = client.get("/ipif/persons/http://test.com/persons/person1")
     assert response.data == MergePersonSerializer(person.merge_person.first()).data
