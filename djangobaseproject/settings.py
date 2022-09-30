@@ -95,8 +95,9 @@ HAYSTACK_CONNECTIONS = {
         # 'URL': 'http://127.0.0.1:8983/solr/mysite',
     },
 }
+# from ipif_hub.signals.signal_processor import SignalProcessor
 
-HAYSTACK_SIGNAL_PROCESSOR = "haystack.signals.RealtimeSignalProcessor"
+HAYSTACK_SIGNAL_PROCESSOR = "ipif_hub.signals.signal_processor.SignalProcessor"
 
 CRISPY_TEMPLATE_PACK = "bootstrap4"
 

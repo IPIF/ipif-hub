@@ -21,7 +21,7 @@ from ipif_hub.serializers import (
     StatementSerializer,
     URISerlializer,
 )
-from ipif_hub.signals.handlers import build_extra_uris
+from ipif_hub.signals.handler_utils import build_extra_uris
 from ipif_hub.tests.conftest import created_modified
 
 

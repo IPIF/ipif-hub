@@ -25,58 +25,49 @@ from ipif_hub.search_indexes import (
 )
 
 logger = get_task_logger(__name__)
+factoidIndex = FactoidIndex()
+personIndex = PersonIndex()
+sourceIndex = SourceIndex()
+statementIndex = StatementIndex()
+mergePersonIndex = MergePersonIndex()
+mergeSourceIndex = MergeSourceIndex()
 
 
 @shared_task(ignore_result=True)
 def update_merge_person_index(instance_pk):
-    merge_person_searches = MergePersonIndex.objects.filter(django_id=instance_pk)
-    for merge_person_search in merge_person_searches:
-        merge_person_search.searchindex.update_object(
-            MergePerson.objects.get(pk=instance_pk)
-        )
+    merge_person = MergePerson.objects.get(pk=instance_pk)
+    mergePersonIndex.update_object(merge_person)
 
 
 @shared_task(ignore_result=True)
 def update_merge_source_index(instance_pk):
-    merge_source_searches = MergeSourceIndex.objects.filter(django_id=instance_pk)
-    for merge_source_search in merge_source_searches:
-        merge_source_search.searchindex.update_object(
-            MergeSource.objects.get(pk=instance_pk)
-        )
+    merge_source = MergeSource.objects.get(pk=instance_pk)
+    mergeSourceIndex.update_object(merge_source)
 
 
 @shared_task(ignore_result=True)
 def update_factoid_index(instance_pk):
     try:
 
-        factoid_searches = FactoidIndex.objects.filter(django_id=instance_pk)
-        for factoid_search in factoid_searches:
-            factoid_search.searchindex.update_object(
-                Factoid.objects.get(pk=instance_pk)
-            )
+        # factoid_searches = FactoidIndex.objects.filter(django_id=instance_pk)
+        # for factoid_search in factoid_searches:
+        factoidIndex.update_object(Factoid.objects.get(pk=instance_pk))
 
         person = Factoid.objects.get(pk=instance_pk).person
-
-        person_searches = PersonIndex.objects.filter(django_id=person.pk)
-        for person_search in person_searches:
-            person_search.searchindex.update_object(person)
+        personIndex.update_object(person)
 
         if merge_person := person.merge_person.first():
-            update_merge_person_index.delay(merge_person.pk)
+            mergePersonIndex.update_object(merge_person)
 
         source = Factoid.objects.get(pk=instance_pk).source
-        source_searches = SourceIndex.objects.filter(django_id=source.pk)
-        for source_search in source_searches:
-            source_search.searchindex.update_object(source)
+        sourceIndex.update_object(source)
 
         if merge_source := source.merge_source.first():
-            update_merge_source_index.delay(merge_source.pk)
+            mergeSourceIndex.update_object(merge_source)
 
         statements = Factoid.objects.get(pk=instance_pk).statements.all()
         for statement in statements:
-            statement_searches = StatementIndex.objects.filter(django_id=statement.pk)
-            for statement_search in statement_searches:
-                statement_search.searchindex.update_object(statement)
+            statementIndex.update_object(statement)
     except Factoid.DoesNotExist:
         pass
 

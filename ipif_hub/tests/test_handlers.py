@@ -13,7 +13,7 @@ from ipif_hub.models import (
     Statement,
     get_ipif_hub_repo_AUTOCREATED_instance,
 )
-from ipif_hub.signals.handlers import (
+from ipif_hub.signals.handler_utils import (
     add_extra_uris,
     build_extra_uris,
     build_uri_from_base,

@@ -2,7 +2,7 @@ import pytest
 from django.db import IntegrityError
 
 from ipif_hub.models import IpifRepo, MergePerson, MergeSource, Person, Source
-from ipif_hub.signals.handlers import build_extra_uris
+from ipif_hub.signals.handler_utils import build_extra_uris
 from ipif_hub.tests.conftest import created_modified, test_repo_no_slug
 
 # from ipif_hub.search_indexes import PersonIndex

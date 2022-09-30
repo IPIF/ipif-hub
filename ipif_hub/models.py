@@ -114,11 +114,11 @@ class MergePerson(AbstractMergeEntity):
         return f'<MergePerson: [{", ".join(repr(person) for person in self.persons.all())}]>'
 
     def save(self, *args, **kwargs):
-        print("Saving MergePerson", self.pk)
+        # print("Saving MergePerson", self.pk)
         super().save()
 
     def delete(self, *args, **kwargs):
-        print("Deleting MergePerson", self.pk)
+        # print("Deleting MergePerson", self.pk)
         super().delete()
 
 
