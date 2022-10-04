@@ -708,3 +708,14 @@ def test_create_person_added_to_index(transactional_db):
     p.save()
 
     assert PersonIndex.objects.all()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_person_is_deleted_from_index(person: Person):
+    assert Person.objects.all()
+    assert PersonIndex.objects.all()
+
+    person.delete()
+
+    assert not Person.objects.all()
+    assert not PersonIndex.objects.all()
