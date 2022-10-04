@@ -22,6 +22,7 @@ from ipif_hub.models import (
     Statement,
     get_ipif_hub_repo_AUTOCREATED_instance,
 )
+from ipif_hub.signals.handlers import celeryCallBundle
 
 
 @pytest.fixture(autouse=True)
@@ -33,9 +34,11 @@ def _setup():
         broker_url="memory://",
         backend="memory",
     ):
+        celeryCallBundle._reset()
         call_command("clear_index", interactive=False, verbosity=0)
         yield
         call_command("clear_index", interactive=False, verbosity=0)
+        celeryCallBundle._reset()
 
 
 test_repo_no_slug = {

@@ -677,5 +677,3 @@ def test_ingest_person_with_realworld_data(repo):
         ]
         for person in data:
             ingest_person_or_source(Person, person, repo)
-
-    assert 2 == 1

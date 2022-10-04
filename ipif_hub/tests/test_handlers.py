@@ -2,10 +2,12 @@ import datetime
 
 import pytest
 from django.conf import settings
+from django.db import transaction
 
 from ipif_hub.models import (
     URI,
     Factoid,
+    IpifRepo,
     MergePerson,
     MergeSource,
     Person,
@@ -13,6 +15,7 @@ from ipif_hub.models import (
     Statement,
     get_ipif_hub_repo_AUTOCREATED_instance,
 )
+from ipif_hub.search_indexes import PersonIndex
 from ipif_hub.signals.handler_utils import (
     add_extra_uris,
     build_extra_uris,
@@ -20,7 +23,7 @@ from ipif_hub.signals.handler_utils import (
     handle_merge_person_from_person_update,
     handle_merge_source_from_source_update,
 )
-from ipif_hub.tests.conftest import created_modified
+from ipif_hub.tests.conftest import created_modified, test_repo_no_slug
 
 
 @pytest.mark.django_db(transaction=True)
@@ -688,3 +691,20 @@ def test_delete_person_used_as_related_person_creates_new_autocreated(repo):
 
     assert related_autocreated_person"""
     pass
+
+
+def test_create_person_added_to_index(transactional_db):
+
+    transactional_db
+
+    repo = IpifRepo(endpoint_slug="testrepo", **test_repo_no_slug)
+    repo.save()
+    p = Person(
+        local_id="person1",
+        label="Person 1",
+        ipif_repo=repo,
+        **created_modified,
+    )
+    p.save()
+
+    assert PersonIndex.objects.all()

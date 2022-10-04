@@ -22,8 +22,7 @@ def test_request_for_persons(person, factoid):
     assert response.data == [PersonSerializer(person).data]
 
 
-@pytest.mark.django_db(transaction=True)
-def test_request_for_specific_persons(person, factoid):
+def test_request_for_specific_persons(transactional_db, person, factoid):
 
     client = APIClient()
     response = client.get("/ipif/persons/http://test.com/persons/person1")
