@@ -75,7 +75,7 @@ def build_statement_filters(request: Request) -> List[Q]:
 
     if p := request.query_params.get("relatesToPerson"):
         statement_filters.append(
-            Q(relatesToPerson__uris__uri=p) | Q(relatesToPerson__id=p)
+            Q(relatesToPerson__uris__uri=p) | Q(relatesToPerson__identifier=p)
         )
 
     if p := request.query_params.get("from"):

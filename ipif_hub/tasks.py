@@ -51,7 +51,7 @@ def update_merge_source_index(instance_pk):
         pass
 
 
-@shared_task(ignore_result=True, rate_limit="100/m")
+@shared_task(ignore_result=True)
 def update_factoid_index(instance_pk):
     try:
 

@@ -560,6 +560,7 @@ def test_list_view_merge_source_sort_by(
         MergePersonSerializer(personNotSameAs.merge_person.first()).data,
         MergePersonSerializer(person.merge_person.first()).data,
     ]
+     """
 
 
 @pytest.mark.django_db(transaction=True)
@@ -587,7 +588,6 @@ def test_list_view_pagination(person, person2, factoid):
         PersonSerializer(person).data,
         PersonSerializer(person2).data,
     ]
-    """
 
 
 @pytest.mark.django_db(transaction=True)
@@ -704,6 +704,17 @@ def test_list_view_with_id_params_works_with_local_id_and_repo(factoid, person):
     response = vs.list(request=req, repo="testrepo")
     assert response.status_code == 200
     assert response.data == [PersonSerializer(person).data]
+
+
+@pytest.mark.django_db(transaction=True)
+def test_list_view_with_relatesToPerson_param(factoid, person, statement, source):
+    vs = StatementViewSet()
+
+    related_person_uri = statement.relatesToPerson.first().uris.first().uri
+
+    req = build_request_with_params(relatesToPerson=related_person_uri)
+    response = vs.list(request=req)
+    assert response.status_code == 200
 
 
 @pytest.mark.django_db(transaction=True)

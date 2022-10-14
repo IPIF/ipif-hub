@@ -79,6 +79,7 @@ class CeleryCallBundle:
         for entity in entity_set_copy:
             if factoids := entity.factoids.all():
                 for factoid in factoids:
+                    print(f"Creating index update task for <Factoid pk={factoid.pk}>")
                     self.factoid_pks_to_index.add(factoid.pk)
                 entity_set.remove(entity)
 
@@ -91,6 +92,7 @@ class CeleryCallBundle:
         for merge_person in merge_persons_copy:
             if factoids := Factoid.objects.filter(person__merge_person=merge_person):
                 for factoid in factoids:
+                    print(f"Creating index update task for <Factoid pk={factoid.pk}>")
                     self.factoid_pks_to_index.add(factoid.pk)
                 self.merge_persons.remove(merge_person)
 
@@ -98,35 +100,43 @@ class CeleryCallBundle:
         for merge_source in merge_sources_copy:
             if factoids := Factoid.objects.filter(source__merge_source=merge_source):
                 for factoid in factoids:
+                    print(f"Creating index update task for <Factoid pk={factoid.pk}>")
                     self.factoid_pks_to_index.add(factoid.pk)
                 self.merge_sources.remove(merge_source)
 
     def call(self):
         if not self.already_called:
             self.already_called = True
+
             self._update_factoids_to_index()
             for pk in self.factoid_pks_to_index:
-                print(f"Creating index task for <Factoid pk={pk}>")
+                print(f"Dispatching index update task for <Factoid pk={pk}>")
                 update_factoid_index.delay(pk)
 
             for source in self.sources:
-                print(f"Creating index task for <Source pk={source.pk}>")
+                print(f"Dispatching index update task for <Source pk={source.pk}>")
                 update_source_index.delay(source.pk)
 
             for person in self.persons:
-                print(f"Creating index task for <Person pk={person.pk}>")
+                print(f"Dispatching index update task for <Person pk={person.pk}>")
                 update_person_index.delay(person.pk)
 
             for statement in self.statements:
-                print(f"Creating index task for <Statement pk={statement.pk}>")
+                print(
+                    f"Dispatching index update task for <Statement pk={statement.pk}>"
+                )
                 update_statement_index.delay(statement.pk)
 
             for merge_person in self.merge_persons:
-                print(f"Creating index task for <MergePerson pk={merge_person.pk}>")
+                print(
+                    f"Dispatching index update task for <MergePerson pk={merge_person.pk}>"
+                )
                 update_merge_person_index(merge_person.pk)
 
             for merge_source in self.merge_sources:
-                print(f"Creating index task for <MergeSource pk={merge_source.pk}>")
+                print(
+                    f"Dispatching index update task for <MergeSource pk={merge_source.pk}>"
+                )
                 update_merge_source_index(merge_source.pk)
 
             self._reset()
