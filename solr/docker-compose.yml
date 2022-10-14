@@ -13,8 +13,6 @@ services:
       - db:/var/lib/postgresql/data
   solr:
     image: "solr:6"
-    environment:
-      - SOLR_HEAP=1G
     ports:
       - "8983:8983"
     volumes:
