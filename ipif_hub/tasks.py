@@ -51,27 +51,28 @@ def update_merge_source_index(instance_pk):
         pass
 
 
-@shared_task(ignore_result=True)
+@shared_task(ignore_result=True, rate_limit="10/s")
 def update_factoid_index(instance_pk):
     try:
 
         # factoid_searches = FactoidIndex.objects.filter(django_id=instance_pk)
         # for factoid_search in factoid_searches:
-        factoidIndex.update_object(Factoid.objects.get(pk=instance_pk))
+        factoid = Factoid.objects.get(pk=instance_pk)
+        factoidIndex.update_object(factoid)
 
-        person = Factoid.objects.get(pk=instance_pk).person
+        person = factoid.person
         personIndex.update_object(person)
 
         if merge_person := person.merge_person.first():
             mergePersonIndex.update_object(merge_person)
 
-        source = Factoid.objects.get(pk=instance_pk).source
+        source = factoid.source
         sourceIndex.update_object(source)
 
         if merge_source := source.merge_source.first():
             mergeSourceIndex.update_object(merge_source)
 
-        statements = Factoid.objects.get(pk=instance_pk).statements.all()
+        statements = factoid.statements.all()
         for statement in statements:
             statementIndex.update_object(statement)
     except Factoid.DoesNotExist:

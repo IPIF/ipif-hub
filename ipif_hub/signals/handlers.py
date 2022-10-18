@@ -137,7 +137,7 @@ class CeleryCallBundle:
                 print(
                     f"Dispatching index update task for <MergeSource pk={merge_source.pk}>"
                 )
-                update_merge_source_index(merge_source.pk)
+                update_merge_source_index.delay(merge_source.pk)
 
             self._reset()
 

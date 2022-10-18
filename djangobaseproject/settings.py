@@ -88,7 +88,7 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 HAYSTACK_CONNECTIONS = {
     "default": {
-        "ENGINE": "haystack.backends.solr_backend.SolrEngine",
+        "ENGINE": "ipif_hub.search.AutoCommitSolrEngine",
         "URL": "http://127.0.0.1:8983/solr/mycore",  # Assuming you created a core named 'tester' as described in installing search engines.
         "ADMIN_URL": "http://127.0.0.1:8983/solr/admin/cores"
         # ...or for multicore...
@@ -200,8 +200,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # CELERY STUFF
-BROKER_URL = "redis://localhost:6379"
-CELERY_RESULT_BACKEND = "redis://localhost:6379"
+CELERY_BROKER_URL = "amqp://localhost"
+CELERY_BROKER_URL = "amqp://localhost"
 CELERY_ACCEPT_CONTENT = ["application/json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
