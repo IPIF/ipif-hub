@@ -74,7 +74,7 @@ def test_build_statement_filters_relatesToPerson():
     req = build_request_with_params(relatesToPerson="John")
     statement_filters = build_statement_filters(req)
     assert statement_filters == [
-        Q(relatesToPerson__uris__uri="John") | Q(relatesToPerson__id="John")
+        Q(relatesToPerson__uris__uri="John") | Q(relatesToPerson__identifier="John")
     ]
 
 
@@ -732,8 +732,8 @@ def test_list_view_statement_params_on_statement(
     assert response.status_code == 200
     assert len(response.data) == 2
     assert response.data == [
-        StatementSerializer(statement).data,
         StatementSerializer(statement2).data,
+        StatementSerializer(statement).data,
     ]
 
     req = build_request_with_params(name="John Smith")

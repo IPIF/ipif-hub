@@ -321,7 +321,7 @@
       -->
 
      <autoSoftCommit>
-      <maxTime>20000</maxTime>
+      <maxTime>100000</maxTime>
     </autoSoftCommit>
 
     <!-- Update Related Event Listeners

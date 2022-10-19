@@ -1,9 +1,8 @@
-import datetime
-from heapq import merge
-
+from celery import chord, group
 from django.db import transaction
 from django.db.models.signals import m2m_changed, post_save, pre_delete
 from django.dispatch import receiver
+from pyrsistent import immutable
 
 from ipif_hub.models import (
     Factoid,
@@ -24,6 +23,7 @@ from ipif_hub.signals.handler_utils import (
     split_merge_source_on_uri_delete,
 )
 from ipif_hub.tasks import (
+    call_commit,
     update_factoid_index,
     update_merge_person_index,
     update_merge_source_index,
@@ -56,6 +56,18 @@ class CeleryCallBundle:
         self.merge_persons = set()
         self.merge_sources = set()
 
+    def has_tasks(self):
+        return any(
+            [
+                self.sources,
+                self.persons,
+                self.statements,
+                self.merge_persons,
+                self.merge_sources,
+                self.factoid_pks_to_index,
+            ]
+        )
+
     def add_factoid(self, factoid: Factoid):
         self.factoid_pks_to_index.add(factoid.pk)
 
@@ -79,7 +91,7 @@ class CeleryCallBundle:
         for entity in entity_set_copy:
             if factoids := entity.factoids.all():
                 for factoid in factoids:
-                    print(f"Creating index update task for <Factoid pk={factoid.pk}>")
+
                     self.factoid_pks_to_index.add(factoid.pk)
                 entity_set.remove(entity)
 
@@ -92,7 +104,7 @@ class CeleryCallBundle:
         for merge_person in merge_persons_copy:
             if factoids := Factoid.objects.filter(person__merge_person=merge_person):
                 for factoid in factoids:
-                    print(f"Creating index update task for <Factoid pk={factoid.pk}>")
+                    # print(f"Creating index update task for <Factoid pk={factoid.pk}>")
                     self.factoid_pks_to_index.add(factoid.pk)
                 self.merge_persons.remove(merge_person)
 
@@ -100,44 +112,50 @@ class CeleryCallBundle:
         for merge_source in merge_sources_copy:
             if factoids := Factoid.objects.filter(source__merge_source=merge_source):
                 for factoid in factoids:
-                    print(f"Creating index update task for <Factoid pk={factoid.pk}>")
+                    # print(f"Creating index update task for <Factoid pk={factoid.pk}>")
                     self.factoid_pks_to_index.add(factoid.pk)
                 self.merge_sources.remove(merge_source)
 
     def call(self):
-        if not self.already_called:
+
+        if not self.already_called and self.has_tasks():
             self.already_called = True
 
             self._update_factoids_to_index()
+            tasks = []
+
             for pk in self.factoid_pks_to_index:
-                print(f"Dispatching index update task for <Factoid pk={pk}>")
-                update_factoid_index.delay(pk)
+                print(f"Creating index update task for <Factoid pk={pk}>")
+                tasks.append(update_factoid_index.s(pk))
 
             for source in self.sources:
-                print(f"Dispatching index update task for <Source pk={source.pk}>")
-                update_source_index.delay(source.pk)
+                print(f"Creating index update task for <Source pk={source.pk}>")
+                tasks.append(update_source_index.s(source.pk))
 
             for person in self.persons:
-                print(f"Dispatching index update task for <Person pk={person.pk}>")
-                update_person_index.delay(person.pk)
+                print(f"Creating index update task for <Person pk={person.pk}>")
+                tasks.append(update_person_index.s(person.pk))
 
             for statement in self.statements:
-                print(
-                    f"Dispatching index update task for <Statement pk={statement.pk}>"
-                )
-                update_statement_index.delay(statement.pk)
+                print(f"Creating index update task for <Statement pk={statement.pk}>")
+                tasks.append(update_statement_index.s(statement.pk))
 
             for merge_person in self.merge_persons:
                 print(
-                    f"Dispatching index update task for <MergePerson pk={merge_person.pk}>"
+                    f"Creating index update task for <MergePerson pk={merge_person.pk}>"
                 )
-                update_merge_person_index(merge_person.pk)
+                tasks.append(update_merge_person_index.s(merge_person.pk))
 
             for merge_source in self.merge_sources:
                 print(
-                    f"Dispatching index update task for <MergeSource pk={merge_source.pk}>"
+                    f"Creating index update task for <MergeSource pk={merge_source.pk}>"
                 )
-                update_merge_source_index.delay(merge_source.pk)
+                tasks.append(update_merge_source_index.s(merge_source.pk))
+
+            if tasks:
+                print(f"Starting {len(tasks)} index update tasks")
+                g = group(task for task in tasks)
+                chord(g)(group(call_commit.s(immutable=True)))
 
             self._reset()
 

@@ -2,6 +2,7 @@ import datetime
 import sys
 from io import StringIO
 
+import requests
 from celery import shared_task
 from celery.utils.log import get_task_logger
 
@@ -33,7 +34,14 @@ mergePersonIndex = MergePersonIndex()
 mergeSourceIndex = MergeSourceIndex()
 
 
-@shared_task(ignore_result=True)
+@shared_task
+def call_commit(*args, **kwargs):
+
+    # print("Submitting commit ...", args)
+    requests.get("http://localhost:8983/solr/mycore/update?commit=true")
+
+
+@shared_task
 def update_merge_person_index(instance_pk):
     try:
         merge_person = MergePerson.objects.get(pk=instance_pk)
@@ -42,7 +50,7 @@ def update_merge_person_index(instance_pk):
         pass
 
 
-@shared_task(ignore_result=True)
+@shared_task
 def update_merge_source_index(instance_pk):
     try:
         merge_source = MergeSource.objects.get(pk=instance_pk)
@@ -51,7 +59,7 @@ def update_merge_source_index(instance_pk):
         pass
 
 
-@shared_task(ignore_result=True, rate_limit="10/s")
+@shared_task(rate_limit="20/s")
 def update_factoid_index(instance_pk):
     try:
 
@@ -79,7 +87,7 @@ def update_factoid_index(instance_pk):
         pass
 
 
-@shared_task(ignore_result=True)
+@shared_task
 def update_person_index(instance_pk):
     personIndex.update_object(Person.objects.get(pk=instance_pk))
 
@@ -87,12 +95,12 @@ def update_person_index(instance_pk):
     #    update_merge_person_index(merge_person.pk)
 
 
-@shared_task(ignore_result=True)
+@shared_task
 def update_source_index(instance_pk):
     sourceIndex.update_object(Source.objects.get(pk=instance_pk))
 
 
-@shared_task(ignore_result=True)
+@shared_task
 def update_statement_index(instance_pk):
     statementIndex.update_object(Statement.objects.get(pk=instance_pk))
 
@@ -111,9 +119,8 @@ class Capturing(list):
         sys.stdout = self._stdout
 
 
-@shared_task(ignore_result=True)
+@shared_task
 def ingest_json_data_task(repo_id, data, job_id=None):
-    logger.info("ingesting data")
     job = IngestionJob.objects.get(pk=job_id)
 
     job.job_status = "running"
