@@ -68,24 +68,62 @@ def build_statement_filters(request: Request) -> List[Q]:
     statement_filters = []
 
     if p := request.query_params.get("statementText"):
-        statement_filters.append(Q(statementText__contains=p))
+        if p == "*":
+            statement_filters.append(
+                (Q(statementText__isnull=False) & ~Q(statementText__exact=""))
+            )
+        else:
+            statement_filters.append(Q(statementText__contains=p))
 
     if p := request.query_params.get("name"):
-        statement_filters.append(Q(name=p))
+        if p == "*":
+            statement_filters.append(Q(name__isnull=False) & ~Q(name__exact=""))
+        else:
+            statement_filters.append(Q(name=p))
 
     if p := request.query_params.get("role"):
-        statement_filters.append(Q(role_uri=p) | Q(role_label=p))
+        if p == "*":
+            statement_filters.append(
+                (Q(role_uri__isnull=False) & ~Q(role_uri__exact=""))
+                | (Q(role_label__isnull=False) & ~Q(role_label__exact=""))
+            )
+        else:
+            statement_filters.append(Q(role_uri=p) | Q(role_label=p))
 
     if p := request.query_params.get("memberOf"):
-        statement_filters.append(Q(memberOf_uri=p) | Q(memberOf_label=p))
+        if p == "*":
+            statement_filters.append(
+                (Q(memberOf_uri__isnull=False) & ~Q(memberOf_uri__exact=""))
+                | (Q(memberOf_label__isnull=False) & ~Q(memberOf_label__exact=""))
+            )
+        else:
+            statement_filters.append(Q(memberOf_uri=p) | Q(memberOf_label=p))
 
     if p := request.query_params.get("place"):
-        statement_filters.append(Q(places__uri=p) | Q(places__label=p))
+        if p == "*":
+            statement_filters.append(
+                (Q(places__uri__isnull=False) & ~Q(places__uri__exact=""))
+                | (Q(places__label__isnull=False) & ~Q(places__label__exact=""))
+            )
+        else:
+            statement_filters.append(Q(places__uri=p) | Q(places__label=p))
 
     if p := request.query_params.get("relatesToPerson"):
-        statement_filters.append(
-            Q(relatesToPerson__uris__uri=p) | Q(relatesToPerson__identifier=p)
-        )
+        if p == "*":
+            statement_filters.append(
+                (
+                    Q(relatesToPerson__uris__uri__isnull=False)
+                    & ~Q(relatesToPerson__uris__uri__exact="")
+                )
+                | (
+                    Q(relatesToPerson__identifier__isnull=False)
+                    & ~Q(relatesToPerson__identifier__exact="")
+                )
+            )
+        else:
+            statement_filters.append(
+                Q(relatesToPerson__uris__uri=p) | Q(relatesToPerson__identifier=p)
+            )
 
     if p := request.query_params.get("from"):
         date = parse_date(p, default=datetime.date(1000, 1, 1))

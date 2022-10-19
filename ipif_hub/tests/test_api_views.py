@@ -41,10 +41,30 @@ def build_request_with_params(**params) -> Request:
     return req
 
 
+def test_build_statement_filters_statementText():
+    req = build_request_with_params(statementText="Some text")
+    statement_filters = build_statement_filters(req)
+    assert statement_filters == [Q(statementText__contains="Some text")]
+
+
+def test_build_statement_filters_statementText_wildcard():
+    req = build_request_with_params(statementText="*")
+    statement_filters = build_statement_filters(req)
+    assert statement_filters == [
+        (Q(statementText__isnull=False) & ~Q(statementText__exact=""))
+    ]
+
+
 def test_build_statement_filters_name():
     req = build_request_with_params(name="John")
     statement_filters = build_statement_filters(req)
     assert statement_filters == [Q(name="John")]
+
+
+def test_build_statement_filters_name_wildcard():
+    req = build_request_with_params(name="*")
+    statement_filters = build_statement_filters(req)
+    assert statement_filters == [Q(name__isnull=False) & ~Q(name__exact="")]
 
 
 def test_build_statement_filters_role():
@@ -53,12 +73,21 @@ def test_build_statement_filters_role():
     assert statement_filters == [Q(role_uri="janitor") | Q(role_label="janitor")]
 
 
-def test_build_statement_filters_memberOf():
-    req = build_request_with_params(memberOf="http://orgs.com/bank")
+def test_build_statement_filters_role_wildcard():
+    req = build_request_with_params(role="*")
     statement_filters = build_statement_filters(req)
     assert statement_filters == [
-        Q(memberOf_uri="http://orgs.com/bank")
-        | Q(memberOf_label="http://orgs.com/bank")
+        (Q(role_uri__isnull=False) & ~Q(role_uri__exact=""))
+        | (Q(role_label__isnull=False) & ~Q(role_label__exact=""))
+    ]
+
+
+def test_build_statement_filters_memberOf_wildcard():
+    req = build_request_with_params(memberOf="*")
+    statement_filters = build_statement_filters(req)
+    assert statement_filters == [
+        (Q(memberOf_uri__isnull=False) & ~Q(memberOf_uri__exact=""))
+        | (Q(memberOf_label__isnull=False) & ~Q(memberOf_label__exact=""))
     ]
 
 
@@ -70,11 +99,35 @@ def test_build_statement_filters_place():
     ]
 
 
+def test_build_statement_filters_place_wildcard():
+    req = build_request_with_params(place="*")
+    statement_filters = build_statement_filters(req)
+    assert statement_filters == [
+        (Q(places__uri__isnull=False) & ~Q(places__uri__exact=""))
+        | (Q(places__label__isnull=False) & ~Q(places__label__exact=""))
+    ]
+
+
 def test_build_statement_filters_relatesToPerson():
     req = build_request_with_params(relatesToPerson="John")
     statement_filters = build_statement_filters(req)
     assert statement_filters == [
         Q(relatesToPerson__uris__uri="John") | Q(relatesToPerson__identifier="John")
+    ]
+
+
+def test_build_statement_filters_relatesToPerson_wildcard():
+    req = build_request_with_params(relatesToPerson="*")
+    statement_filters = build_statement_filters(req)
+    assert statement_filters == [
+        (
+            Q(relatesToPerson__uris__uri__isnull=False)
+            & ~Q(relatesToPerson__uris__uri__exact="")
+        )
+        | (
+            Q(relatesToPerson__identifier__isnull=False)
+            & ~Q(relatesToPerson__identifier__exact="")
+        )
     ]
 
 
@@ -718,6 +771,19 @@ def test_list_view_with_relatesToPerson_param(factoid, person, statement, source
 
 
 @pytest.mark.django_db(transaction=True)
+def test_list_view_with_relatesToPerson_param_wildcard(
+    factoid, person, statement, source
+):
+    vs = StatementViewSet()
+
+    # related_person_uri = statement.relatesToPerson.first().uris.first().uri
+
+    req = build_request_with_params(relatesToPerson="*")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db(transaction=True)
 def test_list_view_statement_params_on_statement(
     factoid,
     factoid2,
@@ -750,6 +816,15 @@ def test_list_view_statement_params_on_statement(
     assert len(response.data) == 1
     assert response.data == [
         StatementSerializer(statement2).data,
+    ]
+
+    req = build_request_with_params(name="*", orderBy="statementId")
+    response = vs.list(request=req)
+    assert response.status_code == 200
+    assert len(response.data) == 2
+    assert response.data == [
+        StatementSerializer(statement2).data,
+        StatementSerializer(statement).data,
     ]
 
 
@@ -834,6 +909,12 @@ def test_params_query_correctly(factoid, statement, person):
     assert len(response.data) == 0
     assert response.data == []
 
+    req = build_request_with_params(statementText="*")
+    response = vs.list(request=req, repo="testrepo")
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data == [PersonSerializer(person).data]
+
     req = build_request_with_params(statementText="Member")
     response = vs.list(request=req, repo="testrepo")
     assert response.status_code == 200
@@ -845,6 +926,12 @@ def test_params_query_correctly(factoid, statement, person):
     assert response.status_code == 200
     assert len(response.data) == 0
     assert response.data == []
+
+    req = build_request_with_params(role="*")
+    response = vs.list(request=req, repo="testrepo")
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data == [PersonSerializer(person).data]
 
     req = build_request_with_params(role="unemployed")
     response = vs.list(request=req, repo="testrepo")
@@ -871,6 +958,12 @@ def test_params_query_correctly(factoid, statement, person):
     assert response.data == []
 
     req = build_request_with_params(memberOf="http://orgs.com/madeup")
+    response = vs.list(request=req, repo="testrepo")
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data == [PersonSerializer(person).data]
+
+    req = build_request_with_params(memberOf="*")
     response = vs.list(request=req, repo="testrepo")
     assert response.status_code == 200
     assert len(response.data) == 1
