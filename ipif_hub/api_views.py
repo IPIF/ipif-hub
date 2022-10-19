@@ -179,7 +179,6 @@ def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
     ✅ sourceId
     ✅ s"""
 
-    # @renderer_classes([AlreadyJSONRenderer])
     def inner(self, request, repo=None):
 
         # Make a copy of this so we can pop off the fulltext fields and
