@@ -192,10 +192,12 @@ def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
             size = int(s[0])
         page_start = 0
 
+        # Get the page number
         if p := request_params.pop("page", None):
             page_start = (int(p[0]) - 1) * size
         page_end = page_start + size
 
+        # Build sortBy and sort_order param by stripping "ASC"/"DESC"
         sortBy = ""
         sort_order = ""
         if s := request_params.pop("sortBy", ""):
@@ -208,21 +210,22 @@ def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
             sortBy = sortBy.replace("DESC", "").strip()
             sort_order = "-"
 
+        # Assemble a sort_string with above options
         if sortBy in {"p", "s", "st", "s"}:
             # These fields already exist in index so we don't need the 'sort_' prefix
             sort_string = f"{sort_order}{sortBy}"
         else:
+            # otherwise, use the solr 'sort_X' fields
             sort_string = f"{sort_order}sort_{sortBy}"
 
+        # Set the correct ipif_type string -- should use MergeX if no repo specified
         ipif_type = object_class.__name__.lower()
-        # index = globals()[f"{object_class.__name__}Index"]
         if not repo and object_class.__name__ == "Person":
-            # index = MergePersonIndex
             ipif_type = "mergeperson"
         elif not repo and object_class.__name__ == "Source":
-            # index = MergeSourceIndex
             ipif_type = "mergesource"
 
+        # Start constructing the solr lookup as dict to be expanded into filter
         solr_lookup_dict = {"ipif_type": ipif_type}
         # Build lookup dict for fulltext search parameters
         for p in ["st", "s", "f", "p"]:
@@ -230,10 +233,11 @@ def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
                 solr_lookup_dict[f"{p}__contains"] = param[0]
                 # For some reason ^^^^ param here is a list, this is a list...
 
+        # If no query params apart from fulltext params remain (popped off above)
+        # on list view, just get all the objects of a type from
+        # Solr — no need to trawl through all this query stuff below
         if not request_params:
-            # If no query params apart from fulltext params (popped off above)
-            # on list view, just get all the objects of a type from
-            # Solr — no need to trawl through all this query stuff below
+
             search_queryset = (
                 SearchQuerySet()
                 .exclude(ipif_repo_slug="IPIFHUB_AUTOCREATED")
@@ -251,7 +255,10 @@ def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
 
             return Response([json.loads(r.pre_serialized) for r in result])
 
-        # Otherwise, we need to create a query...
+        # Otherwise, we need to create a query using the Django ORM...
+
+        # Start by setting the correct queryset, and the qd function
+        # which prefixes later query params with the correct path
 
         # If it's a Person and no repo, change queryset to use
         # MergePerson, and add extra join via persons
@@ -267,6 +274,7 @@ def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
             queryset = object_class.objects
             qd = query_dict("factoids__")
 
+        # Start by constructing the Q object for ORM query
         q = Q()
 
         if repo:
@@ -299,19 +307,22 @@ def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
                 **qd("person__local_id", param)
             )
 
-        # Now create queryset with previously defined q object and add statement filters
+        # Now create queryset with previously defined q object
         queryset = queryset.filter(q)
 
+        # ... and add statement filters
         statement_filters = build_statement_filters(request)
 
-        # If querying /statements endpoint, statement_filters should be applied
-        # directly to the statement queryset
+        # If querying /statements endpoint directly, statement_filters should be applied
+        # directly to the statement queryset [only need to match the one statement]
         if object_class == Statement:
             st_q = Q()
             for sf in statement_filters:
                 st_q &= sf
             queryset = queryset.filter(st_q)
 
+        # in case of "matchAll", all the supplied filters must apply, but not
+        # necessarily to the same statement
         elif request.query_params.get("independentStatements") == "matchAll":
             # Go through each statement filter
             for sf in statement_filters:
@@ -320,6 +331,8 @@ def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
                 # Apply as a filter to queryset
                 queryset = queryset.filter(**qd("statements__in", statements))
 
+        # in case of "matchAny", any one of the supplied filters needs to apply,
+        # to any related statement
         elif request.query_params.get("independentStatements") == "matchAny":
             st_q = Q()
             for sf in statement_filters:
@@ -329,6 +342,8 @@ def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
             # ...and then apply it as a filter on the queryset
             queryset = queryset.filter(**qd("statements__in", statements))
 
+        # if no independentStatment flag, all the supplied filters must
+        # relate to the same statement
         elif statement_filters:
             # Otherwise, build a Q object ANDing together each statement filter...
             st_q = Q()
@@ -339,18 +354,21 @@ def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
             # ...and then apply it as a filter on the queryset
             queryset = queryset.filter(**qd("statements__in", statements))
 
-        # Get serialized results from Solr, adding in any fulltext lookups
-        solr_pks = [r.pk for r in queryset.distinct()]
+        # Get all the pks from Django ORM
+        pks_for_solr_lookup = [r.id for r in queryset.distinct().only("id")]
 
+        # Create the solr queryset... apply the previously-created solr lookup dict
+        # and the filtered pks from the ORM query
         search_queryset = (
             SearchQuerySet()
             .exclude(ipif_repo_slug="IPIFHUB_AUTOCREATED")
-            .filter(**solr_lookup_dict, django_id__in=solr_pks)
+            .filter(**solr_lookup_dict, django_id__in=pks_for_solr_lookup)
         )
-
+        # Add in sortBy params if any
         if sortBy:
             search_queryset = search_queryset.order_by(sort_string)
 
+        # Get the sliced result using page_start,end
         result = islice(
             search_queryset,
             page_start,
