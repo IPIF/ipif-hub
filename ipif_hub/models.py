@@ -1,5 +1,5 @@
-from datetime import datetime
-from typing import Set, Union
+from datetime import datetime, timedelta
+from typing import Optional, Set
 from uuid import uuid4
 
 from django.contrib.auth.models import User
@@ -273,8 +273,8 @@ class IngestionJob(models.Model):
         self.is_complete = True
 
     @property
-    def job_duration(self) -> Union[datetime, None]:
-        if self.is_complete:
+    def job_duration(self) -> Optional[timedelta]:
+        if self.end_datetime:
             return self.end_datetime - self.start_datetime
         return None
 

@@ -2,17 +2,8 @@ from celery import chord, group
 from django.db import transaction
 from django.db.models.signals import m2m_changed, post_save, pre_delete
 from django.dispatch import receiver
-from pyrsistent import immutable
 
-from ipif_hub.models import (
-    Factoid,
-    MergePerson,
-    MergeSource,
-    Person,
-    Source,
-    Statement,
-    get_ipif_hub_repo_AUTOCREATED_instance,
-)
+from ipif_hub.models import Factoid, MergePerson, MergeSource, Person, Source, Statement
 from ipif_hub.signals.handler_utils import (
     add_extra_uris,
     handle_delete_person_updating_merge_persons,

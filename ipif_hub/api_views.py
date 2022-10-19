@@ -32,6 +32,15 @@ from ipif_hub.search_indexes import (
 url_validate = URLValidator()
 
 
+def get_index_from_model(index):
+    return {
+        Person: PersonIndex,
+        Factoid: FactoidIndex,
+        Source: SourceIndex,
+        Statement: StatementIndex,
+    }[index]
+
+
 def is_uri(s: str):
     try:
         url_validate(s)
@@ -106,17 +115,6 @@ def query_dict(path: str) -> Callable:
     return inner
 
 
-from rest_framework import renderers
-
-
-class AlreadyJSONRenderer(renderers.BaseRenderer):
-    media_type = "application/json"
-    format = "json"
-
-    def render(self, data, media_type=None, renderer_context=None):
-        return data
-
-
 NOT_URI_RESPONSE = Response(
     status=400,
     data={
@@ -179,12 +177,12 @@ def list_view(object_class: Type[IpifEntityAbstractBase]) -> Callable:
             sort_string = f"{sort_order}sort_{sortBy}"
 
         ipif_type = object_class.__name__.lower()
-        index = globals()[f"{object_class.__name__}Index"]
+        # index = globals()[f"{object_class.__name__}Index"]
         if not repo and object_class.__name__ == "Person":
-            index = MergePersonIndex
+            # index = MergePersonIndex
             ipif_type = "mergeperson"
         elif not repo and object_class.__name__ == "Source":
-            index = MergeSourceIndex
+            # index = MergeSourceIndex
             ipif_type = "mergesource"
 
         solr_lookup_dict = {"ipif_type": ipif_type}
@@ -355,7 +353,7 @@ def retrieve_view(object_class):
             )
 
         ipif_type = object_class.__name__.lower()
-        index = globals()[f"{object_class.__name__}Index"]
+        index = get_index_from_model(object_class)
         if not repo and object_class.__name__ == "Person":
             index = MergePersonIndex
             ipif_type = "mergeperson"
@@ -378,10 +376,15 @@ def retrieve_view(object_class):
     return inner
 
 
-def build_viewset(object_class: Type[IpifEntityAbstractBase]) -> Type[viewsets.ViewSet]:
+class BaseViewSet(viewsets.ViewSet):
+    retrieve: Callable
+    list: Callable
+
+
+def build_viewset(object_class: Type[IpifEntityAbstractBase]) -> Type[BaseViewSet]:
     viewset_name = f"{object_class.__name__}ViewSet"
 
-    vs: Type[viewsets.ViewSet] = type(
+    vs: Type[BaseViewSet] = type(
         viewset_name,
         (viewsets.ViewSet,),
         {
@@ -394,7 +397,7 @@ def build_viewset(object_class: Type[IpifEntityAbstractBase]) -> Type[viewsets.V
 
 
 # Construct these viewsets
-PersonViewSet = build_viewset(Person)
-SourceViewSet = build_viewset(Source)
-FactoidViewSet = build_viewset(Factoid)
-StatementViewSet = build_viewset(Statement)
+PersonViewSet: Type[BaseViewSet] = build_viewset(Person)
+SourceViewSet: Type[BaseViewSet] = build_viewset(Source)
+FactoidViewSet: Type[BaseViewSet] = build_viewset(Factoid)
+StatementViewSet: Type[BaseViewSet] = build_viewset(Statement)

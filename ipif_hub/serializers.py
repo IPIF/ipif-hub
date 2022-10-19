@@ -1,4 +1,5 @@
 from itertools import filterfalse
+from typing import List
 
 from django.conf import settings
 from rest_framework import serializers
@@ -212,9 +213,6 @@ class StatementSerializer(GenericRefSerializer, serializers.ModelSerializer):
         return_dict["factoid-refs"] = return_dict.pop("factoids")
 
         return return_dict
-
-
-from functools import cache
 
 
 class MergePersonSerializer(serializers.ModelSerializer):

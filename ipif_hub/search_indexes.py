@@ -14,6 +14,18 @@ from ipif_hub.serializers import (
     StatementSerializer,
 )
 
+
+def get_serializer_from_model(model):
+    return {
+        Factoid: FactoidSerializer,
+        Person: PersonSerializer,
+        Source: SourceSerializer,
+        Statement: StatementSerializer,
+        MergePerson: MergePersonSerializer,
+        MergeSource: MergeSourceSerializer,
+    }[model]
+
+
 TEMPLATE_DIR = os.path.join(
     os.path.dirname(__file__), "templates", "search", "indexes", "ipif_hub"
 )
@@ -90,7 +102,7 @@ class BaseIndex(indexes.SearchIndex):
         return self.get_model().__name__.lower()
 
     def prepare_pre_serialized(self, inst):
-        serializer = globals()[f"{self.get_model().__name__}Serializer"]
+        serializer = get_serializer_from_model(self.get_model())
         return json.dumps(serializer(inst).data)
 
     def prepare_uris(self, inst):
