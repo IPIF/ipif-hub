@@ -1,5 +1,4 @@
 import pytest
-from django.db import transaction
 from rest_framework.test import APIClient
 
 from ipif_hub.models import Factoid, IpifRepo, Person, Source, Statement
