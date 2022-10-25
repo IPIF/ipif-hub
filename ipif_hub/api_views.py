@@ -4,17 +4,38 @@ from itertools import islice
 from typing import Callable, List, Type
 
 from dateutil.parser import parse as parse_date
+from django.conf import settings
 from django.core.validators import URLValidator
 from django.db.models import Q
 from django.forms import ValidationError
+from django.views.decorators.csrf import csrf_exempt
 from haystack.query import SQ, SearchQuerySet
+from jsonschema import ValidationError as JSONValidationError
+from jsonschema import validate
 from rest_framework import viewsets
+from rest_framework.authentication import BasicAuthentication
+from rest_framework.decorators import action, parser_classes
+from rest_framework.parsers import JSONParser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from ipif_hub.management.utils.ingest_data import (
+    DataFormatError,
+    ingest_factoids,
+    ingest_persons,
+    ingest_sources,
+    ingest_statements,
+)
+from ipif_hub.management.utils.ingest_schemas import (
+    FACTOID_LIST,
+    PERSON_SOURCE_LIST,
+    STATEMENT_LIST,
+)
 from ipif_hub.models import (
     Factoid,
     IpifEntityAbstractBase,
+    IpifRepo,
     MergePerson,
     Person,
     Source,
@@ -28,6 +49,7 @@ from ipif_hub.search_indexes import (
     SourceIndex,
     StatementIndex,
 )
+from ipif_hub.tasks import Capturing
 
 url_validate = URLValidator()
 
@@ -431,9 +453,83 @@ def retrieve_view(object_class):
     return inner
 
 
+def post_view(object_class):
+    @action(
+        detail=True,
+        methods=["post"],
+        authentication_classes=[BasicAuthentication],
+    )
+    def inner(self, request, repo=None):
+        if repo == None:
+            return Response(
+                status=400,
+                data={
+                    "detail": (
+                        "Updates must be made to a specific repository. "
+                        f"i.e. {settings.IPIF_BASE_URI}/[repository-name]/ipif/{object_class.__name__.lower()}s/"
+                    )
+                },
+            )
+        ipif_repo = IpifRepo.objects.get(pk=repo)
+        if not ipif_repo:
+            return Response(
+                status=404,
+                data={"detail": (f"Repository '{repo}' does not exist.")},
+            )
+
+        if object_class is Person:
+            try:
+                validate(request.data, PERSON_SOURCE_LIST)
+            except JSONValidationError as e:
+                return Response({"detail": e.message}, status=400)
+            try:
+                resp = ingest_persons(request.data, ipif_repo=ipif_repo)
+            except DataFormatError as e:
+                return Response({"detail": e.message}, status=400)
+            return Response({"detail": resp})
+
+        elif object_class is Factoid:
+            try:
+                validate(request.data, FACTOID_LIST)
+            except JSONValidationError as e:
+                return Response({"detail": e.message}, status=400)
+            try:
+                resp = ingest_factoids(request.data, ipif_repo=ipif_repo)
+            except DataFormatError as e:
+                print(e)
+                return Response({"detail": e.message}, status=400)
+            return Response({"detail": resp})
+
+        elif object_class is Statement:
+            try:
+                validate(request.data, STATEMENT_LIST)
+            except JSONValidationError as e:
+                return Response({"detail": e.message}, status=400)
+            try:
+                resp = ingest_statements(self.request.data, ipif_repo=ipif_repo)
+            except DataFormatError as e:
+                return Response({"detail": e.message}, status=400)
+            return Response({"detail": resp})
+
+        elif object_class is Source:
+            try:
+                validate(request.data, PERSON_SOURCE_LIST)
+            except JSONValidationError as e:
+                return Response({"detail": e.message}, status=400)
+            try:
+                resp = ingest_sources(self.request.data, ipif_repo=ipif_repo)
+            except DataFormatError as e:
+                return Response({"detail": e.message}, status=400)
+
+            return Response({"detail": resp})
+
+    return csrf_exempt(inner)
+
+
 class BaseViewSet(viewsets.ViewSet):
     retrieve: Callable
     list: Callable
+    post: Callable
 
 
 def build_viewset(object_class: Type[IpifEntityAbstractBase]) -> Type[BaseViewSet]:
@@ -443,7 +539,10 @@ def build_viewset(object_class: Type[IpifEntityAbstractBase]) -> Type[BaseViewSe
         viewset_name,
         (viewsets.ViewSet,),
         {
-            # "pagination_class": StandardResultsSetPagination, # does not work
+            "parser_classes": [JSONParser],
+            # "authentication_classes": [BasicAuthentication],
+            # "permission_classes": [IsAuthenticated],
+            "post": post_view(object_class),
             "list": list_view(object_class),
             "retrieve": retrieve_view(object_class),
         },

@@ -116,31 +116,31 @@ class CeleryCallBundle:
             tasks = []
 
             for pk in self.factoid_pks_to_index:
-                print(f"Creating index update task for <Factoid pk={pk}>")
+                # print(f"Creating index update task for <Factoid pk={pk}>")
                 tasks.append(update_factoid_index.s(pk))
 
             for source in self.sources:
-                print(f"Creating index update task for <Source pk={source.pk}>")
+                # print(f"Creating index update task for <Source pk={source.pk}>")
                 tasks.append(update_source_index.s(source.pk))
 
             for person in self.persons:
-                print(f"Creating index update task for <Person pk={person.pk}>")
+                # print(f"Creating index update task for <Person pk={person.pk}>")
                 tasks.append(update_person_index.s(person.pk))
 
             for statement in self.statements:
-                print(f"Creating index update task for <Statement pk={statement.pk}>")
+                # print(f"Creating index update task for <Statement pk={statement.pk}>")
                 tasks.append(update_statement_index.s(statement.pk))
 
             for merge_person in self.merge_persons:
-                print(
-                    f"Creating index update task for <MergePerson pk={merge_person.pk}>"
-                )
+                # print(
+                #    f"Creating index update task for <MergePerson pk={merge_person.pk}>"
+                # )
                 tasks.append(update_merge_person_index.s(merge_person.pk))
 
             for merge_source in self.merge_sources:
-                print(
-                    f"Creating index update task for <MergeSource pk={merge_source.pk}>"
-                )
+                # print(
+                #    f"Creating index update task for <MergeSource pk={merge_source.pk}>"
+                # )
                 tasks.append(update_merge_source_index.s(merge_source.pk))
 
             if tasks:

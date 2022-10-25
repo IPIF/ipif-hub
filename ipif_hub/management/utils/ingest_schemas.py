@@ -86,6 +86,25 @@ FACTOID_SCHEMA = {"$ref": "#/$defs/factoid_object", "$defs": DEFS}
 PERSON_SOURCE_SCHEMA = {"$ref": "#/$defs/person_source_object", "$defs": DEFS}
 STATEMENT_SCHEMA = {"$ref": "#/$defs/statement_object", "$defs": DEFS}
 
+PERSON_SOURCE_LIST = {
+    "type": "array",
+    "items": {"$ref": "#/$defs/person_source_object"},
+    "minItems": 1,
+    "$defs": DEFS,
+}
+FACTOID_LIST = {
+    "type": "array",
+    "items": {"$ref": "#/$defs/factoid_object"},
+    "minItems": 1,
+    "$defs": DEFS,
+}
+STATEMENT_LIST = {
+    "type": "array",
+    "items": {"$ref": "#/$defs/statement_object"},
+    "minItems": 1,
+    "$defs": DEFS,
+}
+
 FLAT_LIST_SCHEMA = {
     "type": "object",
     "required": ["factoids", "persons", "sources", "statements"],

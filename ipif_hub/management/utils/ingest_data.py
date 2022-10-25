@@ -1,6 +1,8 @@
 import datetime
 import hashlib
 import json
+import sys
+from io import StringIO
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -21,6 +23,20 @@ from ipif_hub.models import (
     Statement,
     get_ipif_hub_repo_AUTOCREATED_instance,
 )
+
+
+class Capturing(list):
+    """Grabs stdout and returns results as an array"""
+
+    def __enter__(self):
+        self._stdout = sys.stdout
+        sys.stdout = self._stringio = StringIO()
+        return self
+
+    def __exit__(self, *args):
+        self.extend(self._stringio.getvalue().splitlines())
+        del self._stringio  # free up some memory
+        sys.stdout = self._stdout
 
 
 class DataFormatError(Exception):
@@ -442,24 +458,31 @@ def ingest_factoid(data, ipif_repo):
 
 
 def ingest_persons(persons_data, ipif_repo):
-    # print(persons_data)
-    for person in persons_data:
-        ingest_person_or_source(Person, person, ipif_repo)
+    with Capturing() as output:
+        for person in persons_data:
+            ingest_person_or_source(Person, person, ipif_repo)
+    return output
 
 
 def ingest_sources(sources_data, ipif_repo):
-    for source in sources_data:
-        ingest_person_or_source(Source, source, ipif_repo)
+    with Capturing() as output:
+        for source in sources_data:
+            ingest_person_or_source(Source, source, ipif_repo)
+    return output
 
 
 def ingest_statements(statements_data, ipif_repo):
-    for statement in statements_data:
-        ingest_statement(statement, ipif_repo)
+    with Capturing() as output:
+        for statement in statements_data:
+            ingest_statement(statement, ipif_repo)
+    return output
 
 
 def ingest_factoids(factoids_data, ipif_repo):
-    for factoid in factoids_data:
-        ingest_factoid(factoid, ipif_repo)
+    with Capturing() as output:
+        for factoid in factoids_data:
+            ingest_factoid(factoid, ipif_repo)
+    return output
 
 
 @transaction.atomic
